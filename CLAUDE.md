@@ -26,7 +26,7 @@ Workflow for every task:
 | Repo | Monorepo: `/client`, `/server` |
 | Language | **JavaScript** (ESM). No TypeScript. |
 | Client | React 18 + Vite, React Router, Zustand, Mantine |
-| Server | Express (MVC), Zod validation, JWT auth (bcrypt + jsonwebtoken) |
+| Server | Express (MVC), Zod validation, Google sign-in via Supabase Auth (server validates the Supabase-issued token) |
 | Database | Supabase Postgres, accessed via `@supabase/supabase-js` (service-role key, server-side only) |
 | Storage | Supabase Storage bucket `book-scans` |
 | AI | **Google Gemini** — one SDK for vision + text |
@@ -35,8 +35,8 @@ Workflow for every task:
 
 ## Non-negotiable constraints
 
-- **No Supabase Auth.** Auth is hand-rolled JWT in Express against our own `users` table. The course requires us to build it.
-- **The Supabase service-role key never reaches the client.** All DB access goes through Express. The client only ever calls `/api/*`.
+- **Auth is Google sign-in via Supabase Auth.** The client calls `supabase.auth.signInWithOAuth({ provider: 'google' })` directly and holds the resulting session. Express never issues its own token — `requireAuth` validates the Supabase-issued access token on every protected request via `supabase.auth.getUser(token)`.
+- **The Supabase service-role key never reaches the client.** All Postgres/Storage access goes through Express. The one carve-out is auth itself: the client talks to Supabase Auth directly using the public anon key (`VITE_SUPABASE_ANON_KEY`), which is safe to expose by design. Everything else — books, circles, posts, reviews — only ever calls `/api/*`.
 - **No admin roles.** Every circle member has equal permissions. There is no "owner" of a circle beyond a `creator_id` audit column.
 - **Authorization is enforced server-side.** Hiding a button on the client is not authorization. A user must not be able to mutate another user's `user_books` row even with a guessed ID.
 - **Every write is validated with Zod** before it reaches a controller's business logic.

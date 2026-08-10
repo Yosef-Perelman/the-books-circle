@@ -49,11 +49,11 @@ Three stores, no more. Server data that isn't shared across pages lives in compo
 ### `authStore`
 ```js
 { user: null, token: null, status: 'idle'|'loading'|'ready',
-  login(email, password), register(payload), logout(), hydrate() }
+  initializeAuth(), logout() }
 ```
-- Token persisted to `localStorage` under `trc_token` (this is the real app, not a Claude artifact — `localStorage` is fine here).
-- `hydrate()` runs once in `main.jsx`: if a token exists, call `GET /api/auth/me`; on 401, clear and move on.
-- `logout()` clears the token, clears `circleStore`, and navigates to `/`.
+- No `login`/`register` actions — sign-in is `supabase.auth.signInWithOAuth({ provider: 'google' })`, called directly from `AuthPage`, not through the store.
+- `initializeAuth()` runs once in `main.jsx`: reads `supabase.auth.getSession()` for the initial state, then subscribes via `supabase.auth.onAuthStateChange` to stay in sync across login, logout, and silent token refresh. Both paths always resolve to `status: 'ready'` and mirror `session.access_token` into `localStorage` under `trc_token` (this is the real app, not a Claude artifact — `localStorage` is fine here).
+- `logout()` calls `supabase.auth.signOut()`; the change listener clears `user`/`token` and the `localStorage` mirror. See `features/auth.md` for the full flow.
 
 ### `circleStore`
 ```js

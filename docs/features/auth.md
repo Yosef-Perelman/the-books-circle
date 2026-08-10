@@ -1,126 +1,98 @@
 # features/auth.md
 
-Register, login, JWT, route protection. Load with `api-contract.md`.
+Google sign-in, session handling, route protection. Load with `api-contract.md`.
 
 ## Scope
 
-Email + password only. No OAuth, no email verification, no password reset (the "Forgot password?" link in the mockup is decorative — render it, wire it to nothing, or omit it).
+**Google only, via Supabase Auth.** No email/password, no other providers, no password reset (there is no password to reset).
 
-**We do not use Supabase Auth.** The course requires Express-side authentication and authorization as a deliverable. Hand-rolled JWT against our own `users` table.
+Supabase Auth owns the identity/session layer end to end: the client calls `supabase.auth.signInWithOAuth` directly, Supabase handles the OAuth exchange with Google, and the resulting session (including a short-lived access token) is held client-side by the Supabase JS client. **Express issues no tokens of its own.** Every protected route validates the Supabase-issued access token by calling `supabase.auth.getUser(token)` server-side.
+
+This is a deliberate departure from a hand-rolled email/password JWT design — see `CLAUDE.md`'s non-negotiables for the current statement of it. The upside: no password storage, no bcrypt, no reset flow to build. The tradeoff: Express's own "build the auth" deliverable narrows to *validating* a third-party session rather than *issuing* one — see the security checklist below for what still has to be correct on our side.
 
 ## Screens
 
-### Welcome — `/`
-Wordmark, tagline, three short pitch items (Snap / Track / Compete), `Get Started` (primary → `/auth?mode=register`) and `Log in` (ghost → `/auth?mode=login`). Serif hero headline. Redirects to `/feed` if already authenticated.
+### Welcome — `/`, Auth — `/auth`
 
-### Auth — `/auth`
-Split panel, per the mockup:
+Both routes render `AuthPage`: the split panel from the mockup — terracotta branding panel (wordmark, stacked-books illustration, serif headline, pull-quote) on the left, a single **Continue with Google** button on the right. There is no login/register tab toggle and no form — Google's own account picker is the only credential UI. Redirects to `/feed` if already authenticated.
 
-- **Left panel** — `bg terracotta`, wordmark in `surface`, the stacked-books illustration, serif headline "A cosy corner for you and your reading circle.", subline, and a `line`-divided italic pull-quote at the bottom. Hidden below 768px.
-- **Right panel** — `bg surface`. Pill tab toggle (`Log in` / `Create account`) at the top, then the form. `h1` greeting ("Welcome back" / "Create your account") and a `muted` subline. Below the submit button: an `or` divider and a link to the other mode.
+`WelcomePage` (marketing splash with "Get Started" / "Log in" CTAs) exists in the codebase but is not currently routed. Wiring it back in as a true `/` landing page ahead of `/auth` is a small follow-up, not a blocker.
 
-Whole card: radius 24, shadow `lg`, max-width 1040, split 45/55.
+## Client flow
 
-Tab state lives in the URL (`?mode=login|register`) so the "Create an account" link is a real navigation and the back button works.
+1. User clicks **Continue with Google** → `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: '<origin>/feed' } })`. This is a real page navigation to Google's consent screen and back — not a background fetch.
+2. Google redirects back through Supabase, which sets the session and lands the browser on `redirectTo`.
+3. `authStore.initializeAuth()` (called once from `main.jsx` on boot) picks the session up two ways:
+   - `supabase.auth.getSession()` for the state that exists at load time.
+   - `supabase.auth.onAuthStateChange(...)` for everything after — login, logout, and silent token refresh.
+   Both paths set `{ user, token, status: 'ready' }` and mirror `session.access_token` into `localStorage['trc_token']`.
+4. `logout()` calls `supabase.auth.signOut()`; the `onAuthStateChange` listener fires, clears `user`/`token`, and the store's `localStorage` mirror is cleared with it.
 
-## Forms
+The client never calls `/api/auth/login` or `/api/auth/register` — those routes don't exist. `api/client.js` attaches whatever token is in `localStorage['trc_token']` as `Authorization: Bearer <token>` to every `/api/*` call, same as before.
 
-**Login:** email, password → `Log in`.
-**Register:** display name, email, password, confirm password → `Create account`.
-
-Validation, identical rules client and server (Zod on both sides):
-
-| Field | Rule | Message |
-|---|---|---|
-| displayName | trimmed, 2–50 | "Please enter your name." |
-| email | valid email, lowercased before storing | "Please enter a valid email address." |
-| password | ≥8 chars | "Password must be at least 8 characters." |
-| confirmPassword | equals password | "Passwords don't match." |
-
-Client-side validation runs on blur and on submit. Server-side runs regardless — the client check is UX, not security.
-
-All errors render **inline** under their field. The one exception is a failed login, which is a form-level message above the submit button: **"Email or password is incorrect."** — used for both wrong email and wrong password, so the form never reveals whether an account exists.
-
-## Server
-
-### Register — `POST /api/auth/register`
-1. Validate.
-2. `lower(email)` lookup → if found, `409 CONFLICT` "That email is already registered."
-3. `bcrypt.hash(password, env.BCRYPT_ROUNDS)`.
-4. Insert `users`.
-5. Sign a JWT.
-6. `201` with `{ token, user }`.
-
-`confirmPassword` is validated then discarded — it never reaches the model.
-
-### Login — `POST /api/auth/login`
-1. Validate.
-2. Find by lowercased email.
-3. **Always run `bcrypt.compare`**, even when no user was found (compare against a dummy hash), so response timing doesn't leak account existence.
-4. On mismatch → `401 UNAUTHENTICATED`, the shared message.
-5. Sign a JWT, return `{ token, user }`.
-
-### Me — `GET /api/auth/me`
-Returns the user plus their circles with member counts. Called once on boot to rehydrate.
-
-### Token
-
-```js
-jwt.sign({ sub: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN }); // 7d
-```
-
-Keep the payload to `sub` and `email`. Never put a display name or anything mutable in it — the token outlives the value.
+## Server flow
 
 ### `requireAuth` middleware
 
 ```
 read Authorization header
-  → missing or not "Bearer x"     → 401 UNAUTHENTICATED "You need to be signed in."
-  → jwt.verify throws             → 401 UNAUTHENTICATED "Your session has expired. Please sign in again."
-  → ok                            → req.user = { id: payload.sub, email: payload.email }; next()
+  → missing or not "Bearer x"        → 401 UNAUTHENTICATED "You need to be signed in."
+  → supabase.auth.getUser(token) fails → 401 UNAUTHENTICATED "Your session has expired. Please sign in again."
+  → ok                               → req.user = { id: supabaseUser.id, email: supabaseUser.email }; next()
 ```
 
-It does **not** hit the database. If a user is deleted, their token stays valid until expiry — acceptable for this build, since nothing deletes users.
+`getUser` is a live call to Supabase's Auth API — it validates the token remotely rather than verifying a local secret, so there's no `JWT_SECRET` on our side anymore. `requireAuth` is applied per-router; nothing needs to stay open the way `/register` and `/login` used to, since sign-in never touches our API.
 
-`requireAuth` is applied per-router, not globally, because `/api/auth/register` and `/api/auth/login` must stay open.
+### User provisioning — the part that needs care
 
-## Client
+Supabase Auth's own `auth.users` table is not `public.users`. The first time a Google-authenticated request reaches Express, there must be a row in **our** `users` table keyed by that same `id`, or every route that joins on `users` (feed, circles, leaderboard) breaks for a brand-new sign-in.
 
-### `authStore`
+Provision lazily, in the auth flow, not with a database trigger (consistent with this codebase's "no trigger, keep it simple" rule elsewhere — see `database.md`):
+
+- `GET /api/auth/me` — before reading the row, upsert it: `id` = `req.user.id`, `email` = the Supabase user's email, `display_name` = `user_metadata.full_name` (fall back to the email's local part), `avatar_url` = `user_metadata.avatar_url`. Match on `id`, so a repeat sign-in is a no-op update, not a duplicate.
+
+This upsert-in-`getMe` step is **not yet implemented** — today `getMe` does a plain `findById` against `public.users`, which 404s for anyone who has never hit `/me` before. Flagging it here per `CLAUDE.md`'s "known gaps" convention; treat it as the next piece of server work, not a documentation nicety.
+
+### `GET /api/auth/me`
+
+Unchanged contract from the client's point of view — see `api-contract.md`. Returns the (now-provisioned) user plus their circles. Called once on boot to rehydrate.
+
+## Client `authStore`
+
+Actual shape in the codebase — see `client-architecture.md` for the full store contract:
 
 ```js
 { user: null, token: null, status: 'idle' | 'loading' | 'ready',
-  login, register, logout, hydrate }
+  initializeAuth(), logout() }
 ```
 
-- Token persists in `localStorage` under `trc_token`.
-- `hydrate()` runs once in `main.jsx`. No token → `status: 'ready'`, `user: null`. Token → `GET /api/auth/me`; on success set user and circles, on 401 clear the token. **Always** end at `status: 'ready'`.
-- `logout()` clears the token, resets `circleStore`, navigates to `/`.
+No `login`/`register` actions — there's nothing for them to do; sign-in is the redirect in step 1 above, kicked off directly from `AuthPage`.
 
 ### `ProtectedRoute`
 
 ```
-status !== 'ready'  → full-page skeleton (never a redirect — this is the flash-of-login bug)
+status !== 'ready'  → full-page loader (never a redirect — this is the flash-of-login bug)
 user === null       → <Navigate to="/auth" replace />
 else                → <Outlet />
 ```
 
 ### Global 401 handling
-`api/client.js` calls `authStore.logout()` on any 401 and shows a toast: "Your session expired. Please sign in again." One place, not per-call.
+
+`api/client.js` calls `authStore` logout state on any 401 and shows a toast: "Your session expired. Please sign in again." One place, not per-call.
 
 ### After a successful auth
-Navigate to `/feed`. If the user has zero circles, `FeedPage` shows the join-or-create empty state and auto-opens `JoinCreateCircleModal` — a brand-new user should land somewhere actionable, not on an empty screen.
+
+Lands on `/feed` (set via `signInWithOAuth`'s `redirectTo`). If the user has zero circles, `FeedPage` shows the join-or-create empty state — a brand-new user should land somewhere actionable, not on an empty screen.
 
 ## Security checklist
 
-- [ ] `password_hash` never appears in any API response — strip it in the model, not the controller
-- [ ] `JWT_SECRET` is ≥32 chars and lives only in env
-- [ ] Login response is identical for wrong-email and wrong-password
-- [ ] bcrypt runs on both branches of login (timing)
-- [ ] Emails stored and compared lowercased
-- [ ] `express.json({ limit: '1mb' })` caps body size
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` never reaches the client — only `SUPABASE_ANON_KEY` is exposed, and only for the Auth calls
+- [ ] `requireAuth` calls `supabase.auth.getUser`, not a local `jwt.verify` — there is no shared secret to keep in sync
+- [ ] Every `public.users` row is provisioned server-side (see above) — never trust `user_metadata` fields the client could have sent unvalidated for anything authorization-relevant
 - [ ] CORS allows exactly `CLIENT_URL`, never `*`
+- [ ] `express.json({ limit: '1mb' })` caps body size
+- [ ] Google OAuth redirect URLs are registered in the Supabase Auth dashboard for every environment (localhost + production) — see `environment.md`
 
 ## Out of scope
 
-Password reset · email verification · OAuth · refresh tokens · rate limiting on login (mention it as a known gap in the demo rather than building it) · avatar upload (avatars are generated initials, see `design/ui-patterns.md`).
+Email/password login · password reset · email verification · non-Google providers · refresh-token handling on our side (Supabase's client SDK does this for us) · rate limiting on auth endpoints · avatar upload (Google's `picture` claim is the avatar).

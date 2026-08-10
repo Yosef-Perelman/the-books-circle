@@ -45,12 +45,12 @@ Everyone builds their own screens against their own endpoints. A owns `api-contr
 - [ ] Supabase project, `001_init.sql` applied, `book-scans` bucket created
 - [ ] Both `package.json`s, `.env.example`, `env.js` boot validation
 - [ ] Express skeleton: `app.js`, routes index, `errorHandler`, `ApiError`, `asyncHandler`
-- [ ] `POST /register`, `POST /login`, `GET /me`, `requireAuth`
+- [ ] Google provider enabled in Supabase Auth; `GET /me`, `requireAuth` (validates Supabase-issued token, provisions `public.users` on first call)
 - [ ] Vite + Mantine theme from `design/colors.md` + `design/fonts.md`
 - [ ] Router, `ProtectedRoute`, `AppShell`, `authStore`
 - [ ] Welcome + Auth screens, working end to end
 
-**Day 1 is done when** you can register, log in, refresh the page, and stay logged in.
+**Day 1 is done when** you can sign in with Google, refresh the page, and stay logged in.
 
 ### Day 2 — circles + books on the shelf
 - [ ] Circle create / join / detail, `requireCircleMember`, invite codes
@@ -106,12 +106,12 @@ Under time pressure, drop from the top:
 4. Mark a book **Finished** → the interview → answer two questions → Post → **the article appears in the feed.** Pause here; this is the moment.
 5. Open another member's profile — their pills are read-only. Mention the server enforces it too.
 6. Leaderboard, toggle Monthly → All-Time.
-7. Close on the architecture: React/Zustand/Mantine · Express MVC with JWT, Zod, unified errors · Supabase Postgres + Storage · Gemini for vision and text.
+7. Close on the architecture: React/Zustand/Mantine · Express MVC validating Google-OAuth sessions via Supabase Auth, Zod, unified errors · Supabase Postgres + Storage · Gemini for vision and text.
 
-Have two browser profiles logged in as different circle members before you start. Never register a new account live.
+Have two browser profiles signed in with different Google accounts as different circle members before you start. Never sign in with a new account live.
 
 ## Known gaps to state before you're asked
 
-No rate limiting on login · no password reset · no tests · no pagination · no realtime (the feed refetches) · orphaned scan images are never cleaned up · one retry on AI failures.
+Single sign-in path — no fallback if Google OAuth is unreachable · no rate limiting · no tests · no pagination · no realtime (the feed refetches) · orphaned scan images are never cleaned up · one retry on AI failures.
 
 Naming a limitation yourself reads as judgment. Being caught by it doesn't.

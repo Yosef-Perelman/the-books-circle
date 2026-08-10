@@ -19,10 +19,11 @@ Load this for anything touching tables, queries, or models.
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------- users
+-- id mirrors auth.users(id) — Supabase Auth's own identity table.
+-- No password_hash: Google sign-in via Supabase Auth owns credentials, we don't.
 create table users (
-  id             uuid primary key default gen_random_uuid(),
+  id             uuid primary key references auth.users(id) on delete cascade,
   email          text unique not null,
-  password_hash  text not null,
   display_name   text not null,
   avatar_url     text,
   created_at     timestamptz not null default now()
@@ -132,6 +133,10 @@ alter table feed_posts     enable row level security;
 alter table reactions      enable row level security;
 alter table comments       enable row level security;
 ```
+
+## User provisioning
+
+`public.users` is not populated automatically when someone signs in with Google — Supabase only writes to its own `auth.users`. The first request that hits `GET /api/auth/me` for a given `auth.users.id` must upsert a matching `public.users` row (`id`, `email`, `display_name`, `avatar_url` sourced from the Supabase user's `user_metadata`) before reading it back. See `features/auth.md`. No DB trigger — do it in the service layer, same as everything else in this file.
 
 ## Why it's shaped this way
 
