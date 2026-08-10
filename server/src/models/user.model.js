@@ -11,41 +11,22 @@ function mapUser(row) {
   };
 }
 
-export async function findByEmail(email) {
+export async function upsertFromGoogle({ id, email, displayName, avatarUrl }) {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
-    .eq('email', email.toLowerCase())
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  return {
-    ...mapUser(data),
-    passwordHash: data.password_hash
-  };
-}
-
-export async function create({ email, passwordHash, displayName }) {
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      email: email.toLowerCase(),
-      password_hash: passwordHash,
-      display_name: displayName
-    })
+    .upsert(
+      {
+        id,
+        email: email.toLowerCase(),
+        display_name: displayName,
+        avatar_url: avatarUrl
+      },
+      { onConflict: 'id' }
+    )
     .select()
     .single();
 
-  if (error) {
-    if (error.code === '23505') { // unique violation
-      const e = new Error('Email already taken');
-      e.code = '23505';
-      throw e;
-    }
-    throw error;
-  }
+  if (error) throw error;
   return mapUser(data);
 }
 
