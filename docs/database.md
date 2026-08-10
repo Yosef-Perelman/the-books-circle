@@ -227,14 +227,16 @@ supabase.from('circle_members').select('user_id').eq('circle_id', circleId)
 Keep numbered SQL files in `server/migrations/`:
 
 ```
-001_users.sql               public.users + backfill from auth.users
-002_repoint_user_fks.sql    user FKs → public.users (see below)
-003_<what_changed>.sql
+001_users.sql                    public.users + backfill from auth.users
+002_repoint_user_fks.sql         user FKs → public.users (see below)
+003_circles_books_feed.sql       circles, circle_members, books, user_books,
+                                  reviews, feed_posts, reactions, comments
+004_<what_changed>.sql
 ```
 
 Apply via the Supabase SQL editor or the Supabase MCP `apply_migration`. There is no migration runner in the app.
 
-**Applied state (2026-08-10):** all nine tables and every index above exist in project `xklpjrfajiaquzvmewma`, all empty except `users` (2 rows, backfilled from the two Google sign-ins). Migrations `001` and `002` are applied.
+**Applied state (2026-08-10):** all nine tables and every index above exist in project `xklpjrfajiaquzvmewma`, all empty except `users` (2 rows, backfilled from the two Google sign-ins). Migrations `001` and `002` are applied. `003` was written after the fact — the other eight tables already existed live without a tracked migration — so it's `create table if not exists` throughout; running it against the live project is a no-op, and it's what makes a fresh clone reproducible.
 
 ### Every user FK must reference `public.users`, never `auth.users`
 
