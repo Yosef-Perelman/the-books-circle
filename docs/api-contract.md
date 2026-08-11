@@ -7,7 +7,7 @@ Load with the relevant feature doc whenever you touch the server.
 ## Conventions
 
 - Base: `/api`. Server runs on `PORT` (default 4000). Client uses `VITE_API_URL`.
-- All routes require `Authorization: Bearer <jwt>` **except** `POST /api/auth/register` and `POST /api/auth/login`.
+- Every `/api/*` route requires `Authorization: Bearer <supabase-access-token>`. There is no unauthenticated `/api/auth/*` route — sign-in happens client-side against Supabase Auth directly and never touches our API. See `features/auth.md`.
 - Request and response bodies are `camelCase` JSON. The DB's `snake_case` never crosses the wire.
 - Success: `{ "data": ... }`. Lists: `{ "data": [...] }`.
 - Error: always the shape below, produced by `errorHandler.js` and nothing else.
@@ -43,28 +43,14 @@ Rule: prefer 404 over 403 when revealing existence would leak information (e.g. 
 
 ## Auth — `features/auth.md`
 
-### `POST /api/auth/register`
-```jsonc
-// body
-{ "displayName": "Yosef", "email": "y@x.com", "password": "hunter22", "confirmPassword": "hunter22" }
-// 201
-{ "data": { "token": "eyJ...", "user": { "id": "...", "displayName": "Yosef", "email": "y@x.com", "avatarUrl": null } } }
-```
-409 `CONFLICT` if email exists. 422 if passwords mismatch or password < 8 chars.
-
-### `POST /api/auth/login`
-```jsonc
-{ "email": "y@x.com", "password": "hunter22" }
-// 200 → same shape as register
-```
-401 `UNAUTHENTICATED` with message `"Email or password is incorrect."` for both wrong-email and wrong-password. Never distinguish.
+There is no `/api/auth/register` or `/api/auth/login`. Sign-in is `supabase.auth.signInWithOAuth({ provider: 'google' })`, called directly from the client against Supabase — it never reaches Express.
 
 ### `GET /api/auth/me`
 ```jsonc
 // 200
 { "data": { "user": {...}, "circles": [ { "id": "...", "name": "Friends 1", "inviteCode": "F1-8KZQ", "memberCount": 5 } ] } }
 ```
-Called once on app boot to rehydrate. Returning circles here saves a round trip.
+Called once on app boot to rehydrate, once the client holds a Supabase session. The `Authorization` header carries the Supabase access token; `requireAuth` validates it via `supabase.auth.getUser`. First call for a given user also provisions their `public.users` row — see `features/auth.md`. Returning circles here saves a round trip.
 
 ---
 

@@ -17,8 +17,13 @@ export const requireAuth = async (req, res, next) => {
       throw new ApiError(401, 'UNAUTHENTICATED', 'Your session has expired. Please sign in again.');
     }
 
-    // Attach verified user to request
-    req.user = { id: user.id, email: user.email };
+    // Attach verified user to request, including what's needed to provision public.users
+    req.user = {
+      id: user.id,
+      email: user.email,
+      displayName: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+      avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+    };
     next();
   } catch (err) {
     next(err);

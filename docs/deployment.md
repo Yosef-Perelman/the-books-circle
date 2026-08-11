@@ -50,10 +50,12 @@ New Project → import the repo.
 | Build command | `npm run build` |
 | Output directory | `dist` |
 
-Environment variable:
+Environment variables:
 
 ```
 VITE_API_URL=https://<your-service>.onrender.com/api
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
 ```
 
 Changing this requires a **redeploy** — Vite bakes it into the bundle.
@@ -86,12 +88,14 @@ Confirm before the demo:
 - [ ] `book-scans` bucket exists and is public
 - [ ] Seed data loaded (`database.md`)
 - [ ] The service-role key in Render matches the project
+- [ ] Google provider enabled in Supabase Auth, with a Google Cloud OAuth client whose redirect URI is Supabase's callback URL
+- [ ] The Vercel production URL is added to Supabase Auth → URL Configuration → Redirect URLs
 
 ## Post-deploy checklist
 
 - [ ] `GET /api/health` responds
-- [ ] Register a fresh account on the deployed URL
-- [ ] Log in, refresh a deep link (`/leaderboard`) — no 404, still logged in
+- [ ] Sign in with Google on the deployed URL (a second Google account or incognito, since you never register — you sign in)
+- [ ] Refresh a deep link (`/leaderboard`) — no 404, still logged in
 - [ ] Create a circle, join it from a second browser profile
 - [ ] Add a book manually, then by search, then **by scanning a photo from a phone**
 - [ ] Finish a book, complete the interview, see the article in the feed
@@ -107,6 +111,7 @@ Confirm before the demo:
 | CORS error in production only | `CLIENT_URL` mismatch (trailing slash, `www`, `http` vs `https`) |
 | 404 on refresh of any route but `/` | Missing `vercel.json` rewrite |
 | Client calls `localhost:4000` in production | `VITE_API_URL` set after the build — redeploy |
+| Google sign-in redirects to an error page in production | Production URL missing from Supabase Auth → Redirect URLs, or the Google Cloud OAuth client's redirect URI doesn't match Supabase's callback URL exactly |
 | First request takes ~50s | Render free tier cold start — warm it before demoing |
 | Cover images blank in production | `http://` Google URLs blocked as mixed content |
 | Scan works locally, 500s in production | Bucket missing, or service-role key not set on Render |
@@ -116,8 +121,7 @@ Confirm before the demo:
 
 - [ ] No `.env` committed anywhere in git history
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` exist only in Render's env
-- [ ] The client bundle contains **no** Supabase or Gemini key — search `dist/` for `service_role` and `AIza` to be sure
-- [ ] `JWT_SECRET` in production differs from the local one
+- [ ] The client bundle contains **no** service-role key and **no** Gemini key — search `dist/` for `service_role` and `AIza` to be sure. `VITE_SUPABASE_ANON_KEY` **is** expected in the bundle; that's fine, it's public by design.
 - [ ] `errorHandler` sends no stack traces when `NODE_ENV=production`
 
 ## README (write it on day 5)

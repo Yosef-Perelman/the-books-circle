@@ -6,19 +6,22 @@ System shape, folder tree, and dependencies. Load when scaffolding or when you n
 
 ```
 Browser (React SPA on Vercel)
-   │  fetch  /api/*   Authorization: Bearer <jwt>
+   │  supabase-js (anon key) ──► Supabase Auth   (Google sign-in, session)
+   │
+   │  fetch  /api/*   Authorization: Bearer <supabase-access-token>
    ▼
 Express server (Render)  ── MVC ──  routes → middleware → controller → service → model
    │                    │                │
    │                    │                └──► @supabase/supabase-js  (service-role key)
    │                    │                          │
    │                    │                          ├──► Postgres (Supabase)
-   │                    │                          └──► Storage bucket `book-scans`
+   │                    │                          ├──► Storage bucket `book-scans`
+   │                    │                          └──► Auth API — validate tokens (requireAuth)
    │                    ├──► Google Gemini API   (vision + text)
    │                    └──► Google Books API    (metadata)
 ```
 
-**The client never talks to Supabase, Gemini, or Google Books directly.** Every external call is proxied through Express so keys stay on the server and so validation/authorization is unavoidable.
+**The client only ever talks to Supabase Auth directly, and nothing else.** Sign-in and session handling go straight from the browser to Supabase (via the public anon key — see `features/auth.md`). Postgres, Storage, Gemini, and Google Books all stay behind Express, proxied so the service-role key and other API keys stay server-side and so validation/authorization is unavoidable.
 
 ## Folder tree
 
@@ -34,8 +37,10 @@ the-books-circle/
 │       ├── main.jsx                 # ReactDOM root, MantineProvider, BrowserRouter
 │       ├── App.jsx                  # route table
 │       ├── theme.js                 # Mantine theme — see design/colors.md, design/fonts.md
+│       ├── config/
+│       │   └── supabase.js          # createClient(url, anonKey) — Auth only, never DB/Storage
 │       ├── api/
-│       │   ├── client.js            # fetch wrapper: base URL, JWT header, error normalisation
+│       │   ├── client.js            # fetch wrapper: base URL, bearer header, error normalisation
 │       │   ├── auth.js
 │       │   ├── circles.js
 │       │   ├── books.js
@@ -108,7 +113,7 @@ the-books-circle/
         │   ├── validate.js          # validate(schema, 'body'|'query'|'params')
         │   ├── upload.js            # multer memoryStorage, 5MB, images only
         │   └── errorHandler.js      # LAST. one response shape.
-        ├── schemas/                 # Zod schemas, one file per resource
+        ├── schemas/                 # Zod schemas, one file per resource — none for auth (no auth.schema.js): sign-in is unvalidated Supabase input, not a client-submitted form
         └── utils/
             ├── ApiError.js          # class ApiError extends Error { status, code, details }
             ├── asyncHandler.js      # wraps async controllers so errors reach middleware
@@ -151,6 +156,7 @@ POST /api/user-books
 react react-dom react-router-dom
 @mantine/core @mantine/hooks @mantine/notifications @mantine/dropzone
 zustand
+@supabase/supabase-js         # Auth only — sign-in + session, never DB/Storage
 @tabler/icons-react
 ```
 Dev: `vite @vitejs/plugin-react`
@@ -159,11 +165,12 @@ Dev: `vite @vitejs/plugin-react`
 ```
 express cors dotenv
 @supabase/supabase-js
-bcrypt jsonwebtoken
 zod
 multer
 @google/generative-ai
 ```
+No `bcrypt`, no `jsonwebtoken` — there's no local password hash and no locally-signed token; `requireAuth` validates the Supabase-issued token via a live `supabase.auth.getUser` call instead.
+
 Dev: `nodemon`
 
 Do not add anything else without flagging it. No axios (use `fetch`), no lodash, no moment/dayjs (write the two formatters we need by hand), no ORM.

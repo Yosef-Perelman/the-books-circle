@@ -19,10 +19,11 @@ Load this for anything touching tables, queries, or models.
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------- users
+-- id mirrors auth.users(id) — Supabase Auth's own identity table.
+-- No password_hash: Google sign-in via Supabase Auth owns credentials, we don't.
 create table users (
-  id             uuid primary key default gen_random_uuid(),
+  id             uuid primary key references auth.users(id) on delete cascade,
   email          text unique not null,
-  password_hash  text not null,
   display_name   text not null,
   avatar_url     text,
   created_at     timestamptz not null default now()
@@ -133,6 +134,10 @@ alter table reactions      enable row level security;
 alter table comments       enable row level security;
 ```
 
+## User provisioning
+
+`public.users` is not populated automatically when someone signs in with Google — Supabase only writes to its own `auth.users`. The first request that hits `GET /api/auth/me` for a given `auth.users.id` must upsert a matching `public.users` row (`id`, `email`, `display_name`, `avatar_url` sourced from the Supabase user's `user_metadata`) before reading it back. See `features/auth.md`. No DB trigger — do it in the service layer, same as everything else in this file.
+
 ## Why it's shaped this way
 
 - **`books` is a shared catalog.** Two members reading *The Hobbit* point at the same row. This is what makes the deferred per-book page a free query later, and it makes the "Various Genres" leaderboard category possible without duplicating genre strings.
@@ -222,11 +227,32 @@ supabase.from('circle_members').select('user_id').eq('circle_id', circleId)
 Keep numbered SQL files in `server/migrations/`:
 
 ```
-001_init.sql          everything above
-002_<what_changed>.sql
+001_users.sql                    public.users + backfill from auth.users
+002_repoint_user_fks.sql         user FKs → public.users (see below)
+003_circles_books_feed.sql       circles, circle_members, books, user_books,
+                                  reviews, feed_posts, reactions, comments
+004_<what_changed>.sql
 ```
 
 Apply via the Supabase SQL editor or the Supabase MCP `apply_migration`. There is no migration runner in the app.
+
+**Applied state (2026-08-10):** all nine tables and every index above exist in project `xklpjrfajiaquzvmewma`, all empty except `users` (2 rows, backfilled from the two Google sign-ins). Migrations `001` and `002` are applied. `003` was written after the fact — the other eight tables already existed live without a tracked migration — so it's `create table if not exists` throughout; running it against the live project is a no-op, and it's what makes a fresh clone reproducible.
+
+### Every user FK must reference `public.users`, never `auth.users`
+
+This bit the project once already and the failure is silent, so it's worth stating plainly.
+
+The six `user_id` / `creator_id` columns were originally pointed at `auth.users(id)`. That is valid SQL and every insert works — but **PostgREST resolves embedded selects by following a foreign key into a table it exposes**, and `auth.users` is not exposed through the API. So this, from the feed query:
+
+```js
+.select('id, type, created_at, user:users ( id, display_name, avatar_url ), ...')
+```
+
+…fails to resolve the author, and posts come back with no user attached. Same for circle members and comments. Nothing errors at the SQL level; the data is just missing.
+
+`public.users` is the app-facing identity table and the only thing FKs should reference. `users.id → auth.users(id) on delete cascade` is the single link between the two, and it belongs in exactly that one place.
+
+If you add a table with a user column, reference `users(id)`.
 
 ## Seed data
 
