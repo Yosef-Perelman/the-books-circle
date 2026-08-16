@@ -30,14 +30,14 @@ Load with the relevant feature doc whenever you touch the server.
 |---|---|---|
 | 400 | `BAD_REQUEST` | Malformed request or illegal state transition |
 | 401 | `UNAUTHENTICATED` | Missing / expired / invalid JWT |
-| 403 | `FORBIDDEN` | Authenticated but not allowed (not your row, not in that circle) |
-| 404 | `NOT_FOUND` | Resource doesn't exist, or exists but you can't see it |
+| 403 | `FORBIDDEN` | Authenticated but not allowed on a resource whose existence isn't secret (e.g. not your `user_books` row) |
+| 404 | `NOT_FOUND` | Resource doesn't exist, or exists but you can't see it — this is what circle-membership failures always return, never 403 |
 | 409 | `CONFLICT` | Email taken, book already on your shelf, already in circle |
 | 422 | `VALIDATION_ERROR` | Zod rejected the payload; `details` populated |
 | 429 | `RATE_LIMITED` | Upstream AI / Books API throttled us |
 | 500 | `INTERNAL` | Anything unhandled. Never leak a stack trace or upstream error text. |
 
-Rule: prefer 404 over 403 when revealing existence would leak information (e.g. another circle's feed).
+Rule: prefer 404 over 403 when revealing existence would leak information (e.g. another circle's feed). Concretely: **every "not a member of this circle" check is a 404**, not a 403 — `requireCircleMember` is the one place this is enforced, and it always throws 404. 403 is reserved for checks where you already know the resource exists but it isn't yours (e.g. someone else's `user_books` row).
 
 ---
 
@@ -76,7 +76,7 @@ Creator is auto-added to `circle_members`.
 { "data": { "circle": { id, name, inviteCode, memberCount,
     "members": [ { "id": "...", "displayName": "Ben", "avatarUrl": null } ] } } }
 ```
-403 if requester is not a member.
+404 if requester is not a member.
 
 ### `GET /api/circles/:id/feed`
 See `features/feed.md` for the post object.
@@ -141,7 +141,7 @@ Any circle-mate's shelf is readable. Response is identical whether it's your own
 ```jsonc
 { "data": { "user": { id, displayName, avatarUrl }, "books": [ UserBook ] } }
 ```
-403 if you share no circle with `:id`.
+404 if you share no circle with `:id`.
 
 ---
 
@@ -172,7 +172,7 @@ The one transactional endpoint. Generates the article, saves the review, flips t
 
 ### `POST /api/posts/:id/like` → `200 { "data": { "likeCount": 8, "likedByMe": true } }`
 ### `DELETE /api/posts/:id/like` → `200 { "data": { "likeCount": 7, "likedByMe": false } }`
-Both idempotent. 403 if the post's circle isn't one of yours.
+Both idempotent. 404 if the post's circle isn't one of yours.
 
 ### `GET /api/posts/:id/comments`
 ```jsonc
@@ -213,4 +213,4 @@ Every route that takes an id must answer one of these before doing anything:
 - **Am I in this circle?** → circle feed, leaderboard, circle detail, posting/liking/commenting
 - **Do I share a circle with this user?** → viewing someone's shelf
 
-Put the circle check in `requireCircleMember` middleware. Put ownership checks in the service, because they need the row.
+Put the circle check in `requireCircleMember` middleware (`server/src/middleware/requireCircleMember.js`) — it resolves the circle id from `:circleId`, `:id`, or `body.circleId` and always throws 404, never 403, per the rule above. Put ownership checks in the service, because they need the row.

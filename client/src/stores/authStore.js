@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../config/supabase';
+import { useCircleStore } from './circleStore';
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -38,6 +39,7 @@ export const useAuthStore = create((set) => ({
 
   logout: async () => {
     await supabase.auth.signOut();
+    useCircleStore.getState().reset();
   }
 }));
 

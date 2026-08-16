@@ -58,11 +58,14 @@ Three stores, no more. Server data that isn't shared across pages lives in compo
 ### `circleStore`
 ```js
 { circles: [], activeCircleId: null, members: [],
-  setActive(id), loadCircles(), createCircle(name), joinCircle(code) }
+  setActive(id), loadCircles(), reset(), createCircle(name), joinCircle(code) }
 ```
 - `activeCircleId` persisted to `localStorage` under `trc_active_circle`; falls back to the first circle.
 - Every circle-scoped fetch reads `activeCircleId` from here. Do not thread it through props.
 - If a user belongs to zero circles, `FeedPage` renders the "join or create a circle" empty state instead of the feed.
+- `loadCircles()` reads `circles` off `GET /api/auth/me` — there's no standalone "list my circles" route, since `/me` already returns them. Called once from `main.jsx` when `authStore.status === 'ready'` and a user exists.
+- `reset()` clears `circles`/`activeCircleId`/`members` and the `localStorage` key; called from `authStore.logout()` so a new sign-in never inherits the previous user's active circle.
+- **Implemented so far:** `setActive`, `loadCircles`, `reset`. `createCircle`/`joinCircle` land with the `POST /api/circles` and `POST /api/circles/join` routes.
 
 ### `uiStore`
 Modal state and toast helpers only. No server data.
