@@ -1,56 +1,50 @@
-import { Box, Group, Title, Text, Avatar, Stack, Card, Badge, Button, TextInput, Divider } from '@mantine/core';
-import { IconHeart, IconMessageCircle, IconPlus } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
+import { Box, Group, Text, Avatar, Stack, Card, Button, TextInput, Divider } from '@mantine/core';
+import { IconHeart, IconMessageCircle, IconPlus, IconUsers } from '@tabler/icons-react';
+import { useCircleStore } from '../../stores/circleStore';
+import CirclesSidebar from '../circles/CirclesSidebar';
+import MembersSidebar from '../circles/MembersSidebar';
+import JoinCreateCircleModal from '../circles/JoinCreateCircleModal';
+import EmptyState from '../../components/EmptyState';
 
 export default function FeedPage() {
+  const activeCircleId = useCircleStore((state) => state.activeCircleId);
+  const circles = useCircleStore((state) => state.circles);
+  const loadMembers = useCircleStore((state) => state.loadMembers);
+  const [circleModalOpened, setCircleModalOpened] = useState(false);
+
+  useEffect(() => {
+    if (activeCircleId) loadMembers();
+  }, [activeCircleId, loadMembers]);
+
+  // Zero circles: auto-open the join/create modal on first mount instead of
+  // rendering a feed that has nothing circle-scoped to show.
+  useEffect(() => {
+    if (circles.length === 0) setCircleModalOpened(true);
+  }, [circles.length]);
+
+  if (circles.length === 0) {
+    return (
+      <>
+        <Box style={{ minHeight: 'calc(100vh - 70px)' }} display="flex" pt={80}>
+          <EmptyState
+            icon={IconUsers}
+            title="You're not in a circle yet"
+            message="Join a friend's circle with their code, or start your own."
+            actionLabel="Join or create a circle"
+            onAction={() => setCircleModalOpened(true)}
+          />
+        </Box>
+        <JoinCreateCircleModal opened={circleModalOpened} onClose={() => setCircleModalOpened(false)} />
+      </>
+    );
+  }
+
   return (
+    <>
     <Group align="stretch" gap={0} wrap="nowrap" style={{ minHeight: 'calc(100vh - 70px)' }}>
-      
-      {/* Left Sidebar: Circles */}
-      <Box w={260} bg="cream" p="xl" style={{ borderRight: '1px solid #EADFC9' }}>
-        <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLES</Text>
-        
-        <Stack gap="sm">
-          <Group p="sm" style={{ cursor: 'pointer' }}>
-            <Avatar color="sage" radius="xl" size="md" />
-            <Text fw={500}>Family</Text>
-          </Group>
 
-          <Group 
-            p="sm" 
-            bg="terracottaTint" 
-            style={{ 
-              borderRadius: '8px', 
-              borderLeft: '4px solid #C96F4B', 
-              cursor: 'pointer' 
-            }}
-          >
-            <Avatar color="terracotta" radius="xl" size="md" />
-            <Text fw={600} c="terracottaDark">Friends 1</Text>
-          </Group>
-
-          <Group p="sm" style={{ cursor: 'pointer' }}>
-            <Avatar color="forest" radius="xl" size="md" />
-            <Text fw={500}>Friends 2</Text>
-          </Group>
-
-          <Group p="sm" style={{ cursor: 'pointer' }}>
-            <Avatar color="slate" radius="xl" size="md" />
-            <Text fw={500}>Work</Text>
-          </Group>
-        </Stack>
-
-        <Button 
-          variant="outline" 
-          color="terracotta" 
-          fullWidth 
-          mt="xl" 
-          radius="xl"
-          style={{ borderStyle: 'dashed' }}
-          leftSection={<IconPlus size={16} />}
-        >
-          New circle
-        </Button>
-      </Box>
+      <CirclesSidebar onNewCircle={() => setCircleModalOpened(true)} />
 
       {/* Center Feed */}
       <Box style={{ flex: 1 }} bg="surface" p={40}>
@@ -155,58 +149,11 @@ export default function FeedPage() {
         </Container>
       </Box>
 
-      {/* Right Sidebar: Members */}
-      <Box w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
-        <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLE MEMBERS</Text>
-        
-        <Stack gap="md">
-          <Group>
-            <Avatar color="terracotta" radius="xl" size="md">B</Avatar>
-            <Stack gap={0}>
-              <Text fw={600} size="sm">Ben</Text>
-              <Text size="xs" c="muted">in Friends 1</Text>
-            </Stack>
-          </Group>
-          
-          <Group>
-            <Avatar color="forest" radius="xl" size="md">A</Avatar>
-            <Stack gap={0}>
-              <Text fw={600} size="sm">Avi</Text>
-              <Text size="xs" c="muted">in Friends 1</Text>
-            </Stack>
-          </Group>
-          
-          <Group>
-            <Avatar color="sage" radius="xl" size="md">G</Avatar>
-            <Stack gap={0}>
-              <Text fw={600} size="sm">Gadi</Text>
-              <Text size="xs" c="muted">in Friends 1</Text>
-            </Stack>
-          </Group>
-          
-          <Group>
-            <Avatar color="gold" radius="xl" size="md">G</Avatar>
-            <Stack gap={0}>
-              <Text fw={600} size="sm">Gossi</Text>
-              <Text size="xs" c="muted">in Friends 1</Text>
-            </Stack>
-          </Group>
-
-          <Group>
-            <Avatar color="slate" radius="xl" size="md">D</Avatar>
-            <Stack gap={0}>
-              <Text fw={600} size="sm">Dan</Text>
-              <Text size="xs" c="muted">in Friends 1</Text>
-            </Stack>
-          </Group>
-        </Stack>
-        
-        <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
-          5 members · code F1-8KZQ
-        </Text>
-      </Box>
+      <MembersSidebar />
 
     </Group>
+    <JoinCreateCircleModal opened={circleModalOpened} onClose={() => setCircleModalOpened(false)} />
+    </>
   );
 }
 

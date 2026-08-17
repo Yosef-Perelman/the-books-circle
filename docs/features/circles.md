@@ -12,7 +12,7 @@ Membership is a join table (`circle_members`), so multi-circle is already possib
 
 ## Invite codes
 
-Format `XX-XXXXX` — e.g. `F1-8KZQ`. Generate from an unambiguous alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `I`, `O`, `0`, `1`).
+Format `XX-XXXX` — e.g. `F1-8KZQ` (2 + 4). Generate from an unambiguous alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `I`, `O`, `0`, `1`).
 
 Generated in `utils/inviteCode.js`. Retry on unique-violation up to 5 times, then throw. Compared **case-insensitively with dashes and spaces stripped**, so `f18kzq` and `F1-8KZQ` both work.
 
@@ -47,10 +47,10 @@ Validate name → generate a unique code → insert `circles` → insert `circle
 Normalise the code → look up → `404 NOT_FOUND` "No circle found with that code." if absent → if already a member, `409 CONFLICT` "You're already in this circle." → insert membership → return the circle with members.
 
 ### `GET /api/circles/:id`
-`requireCircleMember` → return circle + member list. Non-members get `403`.
+`requireCircleMember` → return circle + member list. Non-members get `404`, not `403` — see below.
 
 ### `requireCircleMember` middleware
-Reads `req.params.id` (or `req.body.circleId`, depending on the route), checks `circle_members` for `(circleId, req.user.id)`, throws `403 FORBIDDEN` "You're not a member of this circle." Applied to every circle-scoped route: feed, leaderboard, circle detail, and any write carrying a `circleId`.
+Reads `req.params.id` (or `req.body.circleId`, depending on the route), checks `circle_members` for `(circleId, req.user.id)`, throws `404 NOT_FOUND` "Circle not found." — per `api-contract.md`'s rule, membership failures never reveal that a circle exists, so this is 404, never 403. Applied to every circle-scoped route: feed, leaderboard, circle detail, and any write carrying a `circleId`.
 
 Never trust a `circleId` in a request body without this check. It is the single easiest hole in the app.
 

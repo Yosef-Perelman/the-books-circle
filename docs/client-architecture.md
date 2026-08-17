@@ -42,6 +42,8 @@ Pages are routes. **Modals are not routes** — they're overlay state.
 
 One modal at a time. Opening a second replaces the first. Exception: `InterviewModal` may open directly from `AddBookModal`'s flow — that's a replace, not a stack.
 
+**Implemented so far:** `uiStore` doesn't exist yet — `AddBookModal` and `JoinCreateCircleModal` both currently open/close via local `useState` in the page that renders them (`AppShell` and `FeedPage` respectively), matching the precedent `AddBookModal` set first. Fine for two independent modals; worth promoting to `uiStore` if a third needs to coordinate with either of them.
+
 ## Stores (Zustand)
 
 Three stores, no more. Server data that isn't shared across pages lives in component state.
@@ -58,14 +60,15 @@ Three stores, no more. Server data that isn't shared across pages lives in compo
 ### `circleStore`
 ```js
 { circles: [], activeCircleId: null, members: [],
-  setActive(id), loadCircles(), reset(), createCircle(name), joinCircle(code) }
+  setActive(id), loadCircles(), loadMembers(), reset(), createCircle(name), joinCircle(inviteCode) }
 ```
 - `activeCircleId` persisted to `localStorage` under `trc_active_circle`; falls back to the first circle.
 - Every circle-scoped fetch reads `activeCircleId` from here. Do not thread it through props.
 - If a user belongs to zero circles, `FeedPage` renders the "join or create a circle" empty state instead of the feed.
 - `loadCircles()` reads `circles` off `GET /api/auth/me` — there's no standalone "list my circles" route, since `/me` already returns them. Called once from `main.jsx` when `authStore.status === 'ready'` and a user exists.
+- `loadMembers()` calls `GET /api/circles/:id` for `activeCircleId` and sets `members`. No-ops (and clears `members`) when `activeCircleId` is null. `FeedPage` calls it whenever `activeCircleId` changes.
+- `createCircle(name)` / `joinCircle(inviteCode)` both `POST`, append the returned circle to `circles`, `setActive` it, then call `loadMembers()` — one code path for both instead of each guessing at the member list independently.
 - `reset()` clears `circles`/`activeCircleId`/`members` and the `localStorage` key; called from `authStore.logout()` so a new sign-in never inherits the previous user's active circle.
-- **Implemented so far:** `setActive`, `loadCircles`, `reset`. `createCircle`/`joinCircle` land with the `POST /api/circles` and `POST /api/circles/join` routes.
 
 ### `uiStore`
 Modal state and toast helpers only. No server data.
