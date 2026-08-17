@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Stack, Group, Text, Image, Loader, Paper, ScrollArea, Box } from '@mantine/core';
+import { Container, Title, Stack, Group, Text, Loader, Paper, ScrollArea, Box } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import { booksApi } from '../../api/booksApi';
+import BookCard from '../../components/BookCard';
 
 export default function ExplorePage() {
   const [data, setData] = useState(null);
@@ -39,28 +40,6 @@ export default function ExplorePage() {
     );
   }
 
-  const BookCard = ({ book }) => (
-    <Paper 
-      shadow="xs" 
-      radius="md" 
-      p="sm" 
-      w={140} 
-      style={{ cursor: 'pointer', flexShrink: 0 }} 
-      onClick={() => navigate(`/book/${book.id}`)}
-      className="hover:-translate-y-1 transition-transform"
-    >
-      {book.coverUrl ? (
-        <Image src={book.coverUrl} h={180} fit="cover" radius="sm" fallbackSrc="https://placehold.co/120x180?text=No+Cover" />
-      ) : (
-        <div style={{ height: 180, backgroundColor: '#eee', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Text size="xs" c="dimmed">No cover</Text>
-        </div>
-      )}
-      <Text size="sm" fw={600} mt="sm" lineClamp={2}>{book.title}</Text>
-      <Text size="xs" c="dimmed" lineClamp={1}>{book.author}</Text>
-    </Paper>
-  );
-
   return (
     <Container size="lg" py="xl">
       <Title order={2} c="forest" mb="xl" style={{ fontFamily: 'Newsreader, serif', fontSize: '32px' }}>
@@ -73,7 +52,7 @@ export default function ExplorePage() {
             <Title order={4} mb="md">Trending Now</Title>
             <ScrollArea>
               <Group wrap="nowrap" pb="sm">
-                {data.trending.map(book => <BookCard key={book.id} book={book} />)}
+                {data.trending.map(book => <BookCard key={book.id} book={book} w={140} />)}
               </Group>
             </ScrollArea>
           </Box>
@@ -84,7 +63,7 @@ export default function ExplorePage() {
             <Title order={4} mb="md">{cat.title}</Title>
             <ScrollArea>
               <Group wrap="nowrap" pb="sm">
-                {cat.books.map(book => <BookCard key={book.id} book={book} />)}
+                {cat.books.map(book => <BookCard key={book.id} book={book} w={140} />)}
               </Group>
             </ScrollArea>
           </Box>

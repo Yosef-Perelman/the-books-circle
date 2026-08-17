@@ -1,28 +1,91 @@
-import { Container, Title, Text, Group, Avatar, Stack, Tabs, Card, Badge, Box } from '@mantine/core';
+import { useState, useEffect, useMemo } from 'react';
+import { Container, Title, Text, Group, Avatar, Stack, Tabs, Box, Loader, Center } from '@mantine/core';
+import { useParams } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
+import BookCard from '../../components/BookCard';
+import { booksApi } from '../../api/booksApi';
+import { usersApi } from '../../api/usersApi';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfilePage() {
+  const { id } = useParams();
+  const authUser = useAuthStore(state => state.user);
+  const [profileUser, setProfileUser] = useState(null);
+  const [books, setBooks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('finished');
+
+  // Determine if viewing own profile
+  const isOwnProfile = !id || id === authUser?.id;
+  // The user to display
+  const user = isOwnProfile ? authUser : profileUser;
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
+    const loadProfile = async () => {
+      try {
+        if (!isOwnProfile) {
+          const userObj = await usersApi.getUser(id);
+          if (isMounted) setProfileUser({ id: userObj.id, displayName: userObj.display_name, avatarUrl: userObj.avatar_url });
+        }
+        
+        const booksData = await booksApi.getUserBooks(id);
+        if (isMounted) setBooks(booksData);
+      } catch (err) {
+        console.error("Profile load error:", err);
+        if (isMounted) notifications.show({ title: 'Error', message: 'Failed to load profile', color: 'red' });
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => { isMounted = false; };
+  }, [id, isOwnProfile]);
+
+  const booksByStatus = useMemo(() => {
+    const grouped = { want: [], reading: [], finished: [] };
+    books.forEach(ub => {
+      if (grouped[ub.status]) {
+        grouped[ub.status].push(ub);
+      }
+    });
+    return grouped;
+  }, [books]);
+
+  if (isLoading) {
+    return (
+      <Center style={{ height: 'calc(100vh - 70px)' }}>
+        <Loader color="terracotta" />
+      </Center>
+    );
+  }
+
   return (
     <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60}>
       <Container size="md">
         
         {/* Profile Header */}
         <Group align="flex-start" gap="xl" mb={60} justify="center">
-          <Avatar color="terracotta" size={100} radius={100} style={{ fontSize: '2.5rem' }}>
-            C
+          <Avatar color="terracotta" size={100} radius={100} src={user?.avatarUrl || ''} style={{ fontSize: '2.5rem' }}>
+            {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
           </Avatar>
           <Stack gap={4}>
             <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '2.5rem' }}>
-              Chen
+              {user?.displayName || 'User'}
             </Title>
-            <Text c="muted" size="lg">in Friends 1</Text>
+            <Text c="muted" size="lg">{isOwnProfile ? 'My Profile' : 'Profile'}</Text>
             <Text c="sage" fw={600} mt="xs">
-              24 books · 18 reviews · 3 currently reading
+              {books.length} books · {booksByStatus.reading.length} currently reading
             </Text>
           </Stack>
         </Group>
 
         {/* Tabs */}
-        <Tabs defaultValue="finished" color="terracotta" variant="unstyled" classNames={{
+        <Tabs value={activeTab} onChange={setActiveTab} color="terracotta" variant="unstyled" classNames={{
           tab: 'custom-tab',
         }}>
           <Tabs.List style={{ borderBottom: '1px solid #EADFC9', paddingBottom: '0' }} mb="xl">
@@ -32,7 +95,9 @@ export default function ProfilePage() {
               py="md"
               style={(theme) => ({ 
                 fontSize: '1.1rem',
-                color: '#8A7E70'
+                color: activeTab === 'want' ? '#C96F4B' : '#8A7E70',
+                fontWeight: activeTab === 'want' ? 600 : 400,
+                borderBottom: activeTab === 'want' ? '3px solid #C96F4B' : '3px solid transparent'
               })}
             >
               Want to read
@@ -43,7 +108,9 @@ export default function ProfilePage() {
               py="md"
               style={(theme) => ({ 
                 fontSize: '1.1rem',
-                color: '#8A7E70'
+                color: activeTab === 'reading' ? '#C96F4B' : '#8A7E70',
+                fontWeight: activeTab === 'reading' ? 600 : 400,
+                borderBottom: activeTab === 'reading' ? '3px solid #C96F4B' : '3px solid transparent'
               })}
             >
               Reading
@@ -54,90 +121,44 @@ export default function ProfilePage() {
               py="md"
               style={(theme) => ({ 
                 fontSize: '1.1rem',
-                fontWeight: 600,
-                color: '#C96F4B',
-                borderBottom: '3px solid #C96F4B'
+                color: activeTab === 'finished' ? '#C96F4B' : '#8A7E70',
+                fontWeight: activeTab === 'finished' ? 600 : 400,
+                borderBottom: activeTab === 'finished' ? '3px solid #C96F4B' : '3px solid transparent'
               })}
             >
               Finished
             </Tabs.Tab>
           </Tabs.List>
 
+          <Tabs.Panel value="want">
+            <Stack gap="md">
+              {booksByStatus.want.map(ub => (
+                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+              ))}
+              {booksByStatus.want.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
+            </Stack>
+          </Tabs.Panel>
+          
+          <Tabs.Panel value="reading">
+            <Stack gap="md">
+              {booksByStatus.reading.map(ub => (
+                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+              ))}
+              {booksByStatus.reading.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
+            </Stack>
+          </Tabs.Panel>
+
           <Tabs.Panel value="finished">
             <Stack gap="md">
-              <BookCard 
-                coverColor="forest" 
-                coverTitle="DUNE"
-                title="Dune" 
-                author="Frank Herbert" 
-                stars={4} 
-                quote="A slow burn that took over my whole week..."
-              />
-              <BookCard 
-                coverColor="slate" 
-                coverTitle="THE HOBBIT"
-                title="The Hobbit" 
-                author="J.R.R. Tolkien" 
-                stars={5} 
-                quote="Comfort reading at its finest..."
-              />
-              <BookCard 
-                coverColor="terracotta" 
-                coverTitle="1984"
-                title="1984" 
-                author="George Orwell" 
-                stars={3.5} 
-                quote="Still hits hard. Bleak but essential..."
-              />
-              <BookCard 
-                coverColor="gold" 
-                coverTitle="EDUCATED"
-                title="Educated" 
-                author="Tara Westover" 
-                stars={4.5} 
-                quote="Couldn't put it down..."
-              />
+              {booksByStatus.finished.map(ub => (
+                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+              ))}
+              {booksByStatus.finished.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
             </Stack>
           </Tabs.Panel>
         </Tabs>
         
       </Container>
     </Box>
-  );
-}
-
-function BookCard({ coverColor, coverTitle, title, author, stars, quote }) {
-  return (
-    <Card radius="xl" p="lg" withBorder bg="surface" style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
-      <Group justify="space-between" align="center" wrap="nowrap">
-        <Group align="flex-start" wrap="nowrap">
-          <Box w={60} h={90} bg={coverColor} style={{ borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {coverTitle && (
-              <Text size="xs" c="white" fw={700} ta="center" style={{ lineHeight: 1.2 }}>
-                {coverTitle.split(' ').map((w, i) => <span key={i}>{w}<br/></span>)}
-              </Text>
-            )}
-          </Box>
-          <Stack gap={2} mt={4}>
-            <Text fw={700} size="lg">{title}</Text>
-            <Text size="sm" c="muted">{author}</Text>
-            <Group gap={2} mt={4}>
-              {[1,2,3,4,5].map(i => (
-                <Text key={i} c={i <= stars ? "terracotta" : "line"}>★</Text>
-              ))}
-            </Group>
-            <Text size="sm" fs="italic" mt="xs" c="ink">
-              "{quote}"
-            </Text>
-          </Stack>
-        </Group>
-
-        <Group gap="xs">
-          <Badge color="line" variant="outline" c="muted" radius="xl" size="lg" style={{ fontWeight: 500, textTransform: 'none' }}>Want</Badge>
-          <Badge color="line" variant="outline" c="muted" radius="xl" size="lg" style={{ fontWeight: 500, textTransform: 'none' }}>Reading</Badge>
-          <Badge color="terracotta" variant="filled" radius="xl" size="lg" style={{ fontWeight: 600, textTransform: 'none' }}>Finished</Badge>
-        </Group>
-      </Group>
-    </Card>
   );
 }

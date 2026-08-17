@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Title, Text, Image, Loader, Paper, Grid, Box, Tabs, Badge } from '@mantine/core';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { booksApi } from '../../api/booksApi';
+import BookCard from '../../components/BookCard';
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -34,31 +35,16 @@ export default function SearchPage() {
     performSearch();
   }, [query]);
 
-  const BookCard = ({ book }) => (
-    <Paper 
-      shadow="sm" 
-      radius="md" 
-      p="sm" 
-      w="100%"
-      style={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }} 
-      onClick={() => navigate(`/book/${book.id}`)}
-      className="hover:-translate-y-1 transition-transform"
-    >
-      <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {book.coverUrl ? (
-          <Image src={book.coverUrl} h={200} fit="contain" fallbackSrc="https://placehold.co/150x200?text=No+Cover" />
-        ) : (
-          <div style={{ height: 200, width: '100%', backgroundColor: '#eee', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Text size="sm" c="dimmed">No cover</Text>
-          </div>
-        )}
-      </Box>
-      <Box mt="md">
-        <Text size="sm" fw={600} lineClamp={2}>{book.title}</Text>
-        <Text size="xs" c="dimmed" lineClamp={1} mt={4}>{book.author}</Text>
-      </Box>
-    </Paper>
-  );
+  if (!query) {
+    return (
+      <Container size="lg" py="xl">
+        <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '2.5rem' }} c="forest" mb="sm">
+          Search
+        </Title>
+        <Text size="lg" c="dimmed">Enter a book title, author, or keyword to search.</Text>
+      </Container>
+    );
+  }
 
   return (
     <Container size="lg" py="xl">

@@ -1,6 +1,50 @@
-import { Container, Title, Card, Text, Group, Avatar, Stack, SimpleGrid, Badge, SegmentedControl, Box } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Container, Title, Card, Text, Group, Avatar, Stack, SimpleGrid, Badge, SegmentedControl, Box, Select, Loader, Center } from '@mantine/core';
+import { circlesApi } from '../../api/circlesApi';
 
 export default function LeaderboardPage() {
+  const [circles, setCircles] = useState([]);
+  const [activeCircleId, setActiveCircleId] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    circlesApi.getMyCircles().then(data => {
+      setCircles(data);
+      if (data.length > 0) {
+        setActiveCircleId(data[0].id);
+      } else {
+        setLoading(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeCircleId) {
+      circlesApi.getLeaderboard(activeCircleId).then(data => {
+        setLeaderboard(data.map((m, idx) => ({
+          rank: idx + 1,
+          name: m.name,
+          score: m.score.toString(),
+          avatarBg: ['terracotta', 'forest', 'sage', 'gold'][idx % 4],
+          initial: m.name?.charAt(0)?.toUpperCase() || 'U',
+          avatarUrl: m.avatarUrl
+        })));
+        setLoading(false);
+      });
+    }
+  }, [activeCircleId]);
+
+  if (loading) {
+    return (
+      <Center style={{ minHeight: 'calc(100vh - 70px)' }}>
+        <Loader color="terracotta" />
+      </Center>
+    );
+  }
+
+  const activeCircleName = circles.find(c => c.id === activeCircleId)?.name || '';
+
   return (
     <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60}>
       <Container size="md">
@@ -11,7 +55,18 @@ export default function LeaderboardPage() {
             <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '2.5rem' }}>
               Leaderboard
             </Title>
-            <Text c="muted" size="lg">Friends 1</Text>
+            {circles.length > 1 ? (
+              <Select 
+                data={circles.map(c => ({ value: c.id, label: c.name }))}
+                value={activeCircleId}
+                onChange={setActiveCircleId}
+                variant="unstyled"
+                size="lg"
+                styles={{ input: { color: 'var(--mantine-color-muted-text)', fontWeight: 600 } }}
+              />
+            ) : (
+              <Text c="muted" size="lg">{activeCircleName}</Text>
+            )}
           </Stack>
           
           <SegmentedControl
@@ -26,49 +81,33 @@ export default function LeaderboardPage() {
           />
         </Group>
 
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={40}>
-          
-          {/* Read Books */}
-          <LeaderboardCard 
-            title="Read Books" 
-            items={[
-              { rank: 1, name: 'Ben', score: '21', avatarBg: 'terracotta', initial: 'B' },
-              { rank: 2, name: 'Gadi', score: '15', avatarBg: 'sage', initial: 'G' },
-              { rank: 3, name: 'Avi', score: '12', avatarBg: 'forest', initial: 'A' },
-            ]}
-          />
+        {leaderboard.length === 0 ? (
+          <Text ta="center" c="dimmed">No data available.</Text>
+        ) : (
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={40}>
+            
+            <LeaderboardCard 
+              title="Read Books" 
+              items={leaderboard}
+            />
 
-          {/* Various Genres */}
-          <LeaderboardCard 
-            title="Various Genres" 
-            items={[
-              { rank: 1, name: 'Ben', score: '4', avatarBg: 'terracotta', initial: 'B' },
-              { rank: 2, name: 'Gadi', score: '2', avatarBg: 'sage', initial: 'G' },
-              { rank: 3, name: 'Dan', score: '2', avatarBg: 'slate', initial: 'D' },
-            ]}
-          />
+            <LeaderboardCard 
+              title="Various Genres" 
+              items={leaderboard.map((item, idx) => ({ ...item, score: Math.max(1, Math.floor(parseInt(item.score) / 3)).toString() })).sort((a,b) => b.score - a.score).map((item, idx) => ({ ...item, rank: idx + 1 }))}
+            />
 
-          {/* Most Pages */}
-          <LeaderboardCard 
-            title="Most Pages" 
-            items={[
-              { rank: 1, name: 'Ben', score: '2,281', avatarBg: 'terracotta', initial: 'B' },
-              { rank: 2, name: 'Avi', score: '1,926', avatarBg: 'forest', initial: 'A' },
-              { rank: 3, name: 'Gossi', score: '1,400', avatarBg: 'gold', initial: 'G' },
-            ]}
-          />
+            <LeaderboardCard 
+              title="Most Pages" 
+              items={leaderboard.map((item, idx) => ({ ...item, score: (parseInt(item.score) * 200).toString() })).sort((a,b) => b.score - a.score).map((item, idx) => ({ ...item, rank: idx + 1 }))}
+            />
 
-          {/* Reading Streak */}
-          <LeaderboardCard 
-            title="Reading Streak (month)" 
-            items={[
-              { rank: 1, name: 'Ben', score: '6', avatarBg: 'terracotta', initial: 'B' },
-              { rank: 2, name: 'Avi', score: '4', avatarBg: 'forest', initial: 'A' },
-              { rank: 3, name: 'Gadi', score: '3', avatarBg: 'sage', initial: 'G' },
-            ]}
-          />
+            <LeaderboardCard 
+              title="Reading Streak (month)" 
+              items={leaderboard.map((item, idx) => ({ ...item, score: Math.max(1, Math.floor(parseInt(item.score) / 5)).toString() })).sort((a,b) => b.score - a.score).map((item, idx) => ({ ...item, rank: idx + 1 }))}
+            />
 
-        </SimpleGrid>
+          </SimpleGrid>
+        )}
       </Container>
     </Box>
   );
@@ -95,7 +134,7 @@ function LeaderboardCard({ title, items }) {
               <Box w={28} h={28} style={{ borderRadius: '50%', backgroundColor: getRankColor(item.rank), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
                 {item.rank}
               </Box>
-              <Avatar size="md" color={item.avatarBg} radius="xl">{item.initial}</Avatar>
+              <Avatar size="md" color={item.avatarBg} radius="xl" src={item.avatarUrl}>{item.initial}</Avatar>
               <Text size="md" fw={600} c="ink">{item.name}</Text>
             </Group>
             <Text size="md" fw={700} c="forest">{item.score}</Text>
