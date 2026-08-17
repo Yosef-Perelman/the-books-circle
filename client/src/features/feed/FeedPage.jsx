@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { circlesApi } from '../../api/circlesApi';
 import { postsApi } from '../../api/postsApi';
 import { formatDistanceToNow } from 'date-fns';
+import CreatePostWidget from './CreatePostWidget';
 
 export default function FeedPage() {
   const navigate = useNavigate();
@@ -192,19 +193,10 @@ export default function FeedPage() {
       <Box style={{ flex: 1 }} bg="surface" p={40}>
         <Container size="sm" mx="auto" p={0}>
           
-          <Card radius="xl" p="md" withBorder style={{ borderColor: '#EADFC9' }} mb="xl">
-            <Group>
-              <TextInput 
-                placeholder="Add a post — what are you reading?" 
-                style={{ flex: 1 }} 
-                variant="unstyled" 
-                size="md"
-              />
-              <Button color="terracotta" radius="xl" leftSection={<IconPlus size={16} />}>
-                Post
-              </Button>
-            </Group>
-          </Card>
+          <CreatePostWidget 
+            onPostCreated={() => loadFeed(true)} 
+            activeCircle={activeCircle} 
+          />
 
           <Stack gap="lg">
             {posts.length === 0 && (
@@ -389,16 +381,29 @@ function PostCard({ post, onReactionUpdate, onCommentAdded }) {
         <Avatar color="slate" radius="xl" src={post.user?.avatarUrl}>{post.user?.name?.charAt(0) || 'U'}</Avatar>
         <Stack gap={0}>
           <Text fw={600}>{post.user?.name || 'Unknown User'}</Text>
-          <Text size="xs" c="muted">{post.type} a book · {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'some time'} ago</Text>
+          <Text size="xs" c="muted">
+            {post.type === 'text' ? 'Posted an update' : post.type === 'review' ? 'Wrote a review' : `${post.type} a book`} 
+            {post.circle ? ` in ${post.circle.name}` : ''}
+            {' · '} 
+            {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'some time'} ago
+          </Text>
         </Stack>
       </Group>
       
-      <Group 
-        align="flex-start" 
-        mb={post.userBook?.rating ? "md" : 0} 
-        style={{ cursor: 'pointer' }}
-        onClick={() => post.userBook?.book?.apiId && navigate(`/book/${post.userBook.book.apiId}`)}
-      >
+      {post.content && (
+        <Text mt="md" mb="md" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+          {post.content}
+        </Text>
+      )}
+
+      {post.userBook?.book && (
+        <Card withBorder radius="md" p="xs" mt={post.content ? "0" : "md"} mb="md" bg="gray.0">
+          <Group 
+            align="flex-start" 
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate(`/book/${post.userBook.book.apiId}`)}
+            wrap="nowrap"
+          >
         {post.userBook?.book?.coverUrl ? (
           <Avatar src={post.userBook.book.coverUrl} w={40} h={60} radius="sm" />
         ) : (
@@ -413,8 +418,10 @@ function PostCard({ post, onReactionUpdate, onCommentAdded }) {
               <Text size="sm" fw={600} ml="xs">{post.userBook.rating}</Text>
             </Group>
           )}
-        </Stack>
-      </Group>
+          </Stack>
+          </Group>
+        </Card>
+      )}
 
       <Group gap="xl" mt="md">
         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={handleLike}>
