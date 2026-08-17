@@ -4,13 +4,16 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { IconSearch } from '@tabler/icons-react';
 import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 import AddBookModal from '../features/books/AddBookModal';
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
+  const modal = useUiStore((state) => state.modal);
+  const openModal = useUiStore((state) => state.openModal);
+  const closeModal = useUiStore((state) => state.closeModal);
   const navigate = useNavigate();
   const location = useLocation();
-  const [addBookOpened, setAddBookOpened] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -54,7 +57,7 @@ export default function Layout() {
                 leftSection={<IconSearch size={16} />}
                 style={{ width: isMobile ? '120px' : '250px' }}
               />
-              <Button radius="xl" color="terracotta" onClick={() => setAddBookOpened(true)} visibleFrom="sm">
+              <Button radius="xl" color="terracotta" onClick={() => openModal('addBook')} visibleFrom="sm">
                 Add a Book
               </Button>
               <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate('/profile')}>
@@ -82,7 +85,7 @@ export default function Layout() {
 
         <Drawer opened={drawerOpened} onClose={closeDrawer} size="xs" title="Menu" padding="xl">
           <Stack gap="lg">
-            <Button radius="xl" color="terracotta" onClick={() => { setAddBookOpened(true); closeDrawer(); }} fullWidth>
+            <Button radius="xl" color="terracotta" onClick={() => { openModal('addBook'); closeDrawer(); }} fullWidth>
               Add a Book
             </Button>
             <UnstyledButton onClick={() => { navigate('/explore'); closeDrawer(); }}>
@@ -104,7 +107,7 @@ export default function Layout() {
           <Outlet />
         </AppShell.Main>
       </AppShell>
-      <AddBookModal opened={addBookOpened} onClose={() => setAddBookOpened(false)} />
+      <AddBookModal opened={modal?.type === 'addBook'} onClose={closeModal} />
     </>
   );
 }

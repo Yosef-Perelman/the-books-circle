@@ -63,7 +63,7 @@ Never 300 or lighter — it disappears on a cream background. Never `italic` exc
 - Book titles never truncate to one line — wrap to two, then ellipsis (`-webkit-line-clamp: 2`).
 - Review snippets on the profile clamp to 2 lines; the full article renders only in the feed post.
 - Numbers in the leaderboard use `font-variant-numeric: tabular-nums` so ranks line up.
-- Relative timestamps: `2h`, `4h`, `1d`, `3w`. Past 4 weeks, switch to `12 Mar`.
+- Relative timestamps: `2h`, `4h`, `1d`, `3w`. Past 4 weeks, switch to `12 Mar`. **Superseded in the feed** — instructor note 9 asked for absolute timestamps there instead (`10 Aug, 14:32`); see `features/feed.md` and `client/src/lib/formatters.js`. Elsewhere in the app (if anything else shows a timestamp) this relative rule still stands.
 - Sentence case for buttons and headings ("Add a book", not "Add A Book"). UPPERCASE only for the `label` token.
 
 ## Mantine theme fragment

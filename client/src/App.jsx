@@ -43,6 +43,7 @@ export default function App() {
       >
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/search" element={<SearchPage />} />

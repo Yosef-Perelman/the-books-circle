@@ -42,7 +42,7 @@ Pages are routes. **Modals are not routes** — they're overlay state.
 
 One modal at a time. Opening a second replaces the first. Exception: `InterviewModal` may open directly from `AddBookModal`'s flow — that's a replace, not a stack.
 
-**Implemented so far:** `uiStore` doesn't exist yet — `AddBookModal` and `JoinCreateCircleModal` both currently open/close via local `useState` in the page that renders them (`AppShell` and `FeedPage` respectively), matching the precedent `AddBookModal` set first. Fine for two independent modals; worth promoting to `uiStore` if a third needs to coordinate with either of them.
+**Implemented so far:** `uiStore` exists with `modal`/`openModal`/`closeModal` exactly as above. `AddBookModal` (opened from both `AppShell` and `FeedPage`'s `PostComposer`) and `JoinCreateCircleModal` both go through it now — this is what made a single shared `AddBookModal` instance possible instead of one per trigger site. `InterviewModal` and `ConfirmReadingDialog` aren't wired up yet; they'll use the same `modal.type` switch when built.
 
 ## Stores (Zustand)
 

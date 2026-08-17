@@ -13,5 +13,6 @@ const router = Router();
 router.post('/', requireAuth, validate(createCircleSchema), asyncHandler(circleController.create));
 router.post('/join', requireAuth, validate(joinCircleSchema), asyncHandler(circleController.join));
 router.get('/:id', requireAuth, requireCircleMember, asyncHandler(circleController.getOne));
+router.get('/:id/feed', requireAuth, requireCircleMember, asyncHandler(circleController.getFeed));
 
 export default router;
