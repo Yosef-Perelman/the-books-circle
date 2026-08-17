@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack } from '@mantine/core';
+import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Menu } from '@mantine/core';
 import { useParams, useNavigate } from 'react-router-dom';
-import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconBook, IconCheck, IconBookmark } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
+import { notifications } from '@mantine/notifications';
 
 export default function BookDetailsPage() {
   const { id } = useParams();
@@ -10,6 +11,19 @@ export default function BookDetailsPage() {
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddBook = async (status) => {
+    setIsAdding(true);
+    try {
+      await booksApi.addUserBook({ book, status, source: 'search' });
+      notifications.show({ title: 'Success', message: 'Book added to your shelf!', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Could not add book', color: 'red' });
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   useEffect(() => {
     async function loadBook() {
@@ -85,16 +99,34 @@ export default function BookDetailsPage() {
               {book.publishedDate && <Badge color="gray" variant="outline">{book.publishedDate}</Badge>}
             </Group>
 
-            <Button 
-              color="terracotta" 
-              radius="xl" 
-              size="md" 
-              w="fit-content" 
-              leftSection={<IconPlus size={20} />}
-              mt="md"
-            >
-              Add to my shelf
-            </Button>
+            <Menu shadow="md" width={200}>
+              <Menu.Target>
+                <Button 
+                  color="terracotta" 
+                  radius="xl" 
+                  size="md" 
+                  w="fit-content" 
+                  leftSection={<IconPlus size={20} />}
+                  mt="md"
+                  loading={isAdding}
+                >
+                  Add to my shelf
+                </Button>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Label>Select shelf</Menu.Label>
+                <Menu.Item leftSection={<IconCheck size={14} />} onClick={() => handleAddBook('finished')}>
+                  Finished
+                </Menu.Item>
+                <Menu.Item leftSection={<IconBook size={14} />} onClick={() => handleAddBook('reading')}>
+                  Currently Reading
+                </Menu.Item>
+                <Menu.Item leftSection={<IconBookmark size={14} />} onClick={() => handleAddBook('want')}>
+                  Want to Read
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
 
             {book.description && (
               <div mt="xl">

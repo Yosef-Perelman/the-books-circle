@@ -51,3 +51,79 @@ export async function findByUser(userId) {
 
   return circles.map((c) => mapCircle(c, counts[c.id] ?? 0));
 }
+
+export async function getMembers(circleId) {
+  const { data, error } = await supabase
+    .from('circle_members')
+    .select('users (id, display_name, avatar_url)')
+    .eq('circle_id', circleId);
+
+  if (error) throw error;
+  return data.map(m => ({
+    id: m.users.id,
+    name: m.users.display_name,
+    avatarUrl: m.users.avatar_url
+  }));
+}
+
+export async function createCircle(name, creatorUserId) {
+  // Generate random 6 character alphanumeric invite code
+  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  
+  const { data: circle, error: circleError } = await supabase
+    .from('circles')
+    .insert({ name, invite_code: inviteCode })
+    .select()
+    .single();
+
+  if (circleError) throw circleError;
+
+  const { error: memberError } = await supabase
+    .from('circle_members')
+    .insert({ circle_id: circle.id, user_id: creatorUserId });
+
+  if (memberError) throw memberError;
+
+  return mapCircle(circle, 1);
+}
+
+export async function joinCircle(inviteCode, userId) {
+  const { data: circle, error: circleError } = await supabase
+    .from('circles')
+    .select('id, name, invite_code, created_at')
+    .eq('invite_code', inviteCode)
+    .single();
+
+  if (circleError || !circle) throw new Error('Invalid invite code');
+
+  // Check if already a member
+  const isMem = await isMember(circle.id, userId);
+  if (isMem) throw new Error('Already a member of this circle');
+
+  const { error: memberError } = await supabase
+    .from('circle_members')
+    .insert({ circle_id: circle.id, user_id: userId });
+
+  if (memberError) throw memberError;
+
+  // Get new member count
+  const { count, error: countError } = await supabase
+    .from('circle_members')
+    .select('circle_id', { count: 'exact', head: true })
+    .eq('circle_id', circle.id);
+
+  if (countError) throw countError;
+
+  return mapCircle(circle, count || 1);
+}
+
+export async function leaveCircle(circleId, userId) {
+  const { error } = await supabase
+    .from('circle_members')
+    .delete()
+    .eq('circle_id', circleId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return true;
+}

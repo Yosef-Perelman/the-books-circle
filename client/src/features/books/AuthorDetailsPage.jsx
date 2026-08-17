@@ -3,6 +3,7 @@ import { Container, Title, Text, Image, Loader, Group, Button, Grid, Stack, Pape
 import { useParams, useNavigate } from 'react-router-dom';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
+import BookCard from '../../components/BookCard';
 
 export default function AuthorDetailsPage() {
   const { id } = useParams();
@@ -44,32 +45,6 @@ export default function AuthorDetailsPage() {
       </Container>
     );
   }
-
-  const BookCard = ({ book }) => (
-    <Paper 
-      shadow="sm" 
-      radius="md" 
-      p="sm" 
-      w="100%"
-      style={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }} 
-      onClick={() => navigate(`/book/${book.id}`)}
-      className="hover:-translate-y-1 transition-transform"
-    >
-      <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {book.coverUrl ? (
-          <Image src={book.coverUrl} h={200} fit="contain" fallbackSrc="https://placehold.co/150x200?text=No+Cover" />
-        ) : (
-          <div style={{ height: 200, width: '100%', backgroundColor: '#eee', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Text size="sm" c="dimmed">No cover</Text>
-          </div>
-        )}
-      </Box>
-      <Box mt="md">
-        <Text size="sm" fw={600} lineClamp={2}>{book.title}</Text>
-        <Text size="xs" c="dimmed" lineClamp={1} mt={4}>{book.publishedDate ? `Published: ${book.publishedDate}` : 'Unknown Date'}</Text>
-      </Box>
-    </Paper>
-  );
 
   return (
     <Container size="lg" py="xl">

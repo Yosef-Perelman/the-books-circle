@@ -15,5 +15,15 @@ export const booksApi = {
   },
   getAuthorDetails: async (id) => {
     return await apiClient(`/books/authors/${encodeURIComponent(id)}`);
+  },
+  addUserBook: async (data) => {
+    return await apiClient('/user-books', {
+      method: 'POST',
+      body: data, // Note: fetch stringifies body inside apiClient if it's an object? Wait, apiClient stringifies body.
+    });
+  },
+  getUserBooks: async (userId = null) => {
+    const query = userId ? `?userId=${userId}` : '';
+    return await apiClient(`/user-books${query}`);
   }
 };
