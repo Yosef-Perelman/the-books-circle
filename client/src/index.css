@@ -13,3 +13,7 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Markdown styling for chat */
+.markdown-body p:first-of-type { margin-top: 0; }
+.markdown-body p:last-of-type { margin-bottom: 0; }

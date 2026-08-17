@@ -7,15 +7,16 @@ function mapPost(row) {
     circleId: row.circle_id,
     userId: row.user_id,
     type: row.type,
+    content: row.content,
     userBookId: row.user_book_id,
     createdAt: row.created_at
   };
 }
 
-export async function createPost({ circleId, userId, type, userBookId = null }) {
+export async function createPost({ circleId, userId, type, content = null, userBookId = null }) {
   const { data, error } = await supabase
     .from('feed_posts')
-    .insert({ circle_id: circleId, user_id: userId, type, user_book_id: userBookId })
+    .insert({ circle_id: circleId, user_id: userId, type, content, user_book_id: userBookId })
     .select()
     .single();
 
@@ -24,10 +25,10 @@ export async function createPost({ circleId, userId, type, userBookId = null }) 
 }
 
 // to. In MVP a user has one active circle, but this keeps multi-circle free.
-export async function createPostForAllCircles({ userId, type, userBookId = null }) {
+export async function createPostForAllCircles({ userId, type, content = null, userBookId = null }) {
   const circles = await CircleModel.findByUser(userId);
   return Promise.all(
-    circles.map((c) => createPost({ circleId: c.id, userId, type, userBookId }))
+    circles.map((c) => createPost({ circleId: c.id, userId, type, content, userBookId }))
   );
 }
 
@@ -37,7 +38,9 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
     .select(`
       id,
       type,
+      content,
       created_at,
+      circles:circle_id (id, name),
       users:user_id (id, display_name, avatar_url),
       user_books:user_book_id (
         id, status,
@@ -70,7 +73,12 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
   return data.map(row => ({
     id: row.id,
     type: row.type,
+    content: row.content,
     createdAt: row.created_at,
+    circle: row.circles ? {
+      id: row.circles.id,
+      name: row.circles.name
+    } : null,
     user: row.users ? {
       id: row.users.id,
       name: row.users.display_name,

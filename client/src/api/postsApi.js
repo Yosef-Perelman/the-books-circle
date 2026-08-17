@@ -15,5 +15,11 @@ export const postsApi = {
       method: 'POST',
       body: { content }
     });
+  },
+  createPost: async (postData) => {
+    return await apiClient(`/posts`, {
+      method: 'POST',
+      body: postData
+    });
   }
 };

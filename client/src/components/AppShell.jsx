@@ -72,6 +72,9 @@ export default function Layout() {
                 <UnstyledButton onClick={() => navigate('/leaderboard')}>
                   <Text fw={600} size="md" c={getNavColor('/leaderboard')}>Leaderboard</Text>
                 </UnstyledButton>
+                <UnstyledButton onClick={() => navigate('/chat')}>
+                  <Text fw={600} size="md" c={getNavColor('/chat')}>AI Chat</Text>
+                </UnstyledButton>
                 <UnstyledButton onClick={() => { logout(); navigate('/'); }}>
                   <Text fw={500} size="md" c="muted">Logout</Text>
                 </UnstyledButton>
@@ -93,6 +96,9 @@ export default function Layout() {
             </UnstyledButton>
             <UnstyledButton onClick={() => { navigate('/leaderboard'); closeDrawer(); }}>
               <Text fw={600} size="lg" c={getNavColor('/leaderboard')}>Leaderboard</Text>
+            </UnstyledButton>
+            <UnstyledButton onClick={() => { navigate('/chat'); closeDrawer(); }}>
+              <Text fw={600} size="lg" c={getNavColor('/chat')}>AI Chat</Text>
             </UnstyledButton>
             <UnstyledButton onClick={() => { logout(); navigate('/'); closeDrawer(); }}>
               <Text fw={500} size="lg" c="muted">Logout</Text>

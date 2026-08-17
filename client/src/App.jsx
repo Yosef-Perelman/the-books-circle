@@ -9,6 +9,7 @@ import ExplorePage from './features/books/ExplorePage';
 import BookDetailsPage from './features/books/BookDetailsPage';
 import SearchPage from './features/books/SearchPage';
 import AuthorDetailsPage from './features/books/AuthorDetailsPage';
+import ChatPage from './features/chat/ChatPage';
 import { Loader, Center } from '@mantine/core';
 
 function ProtectedRoute({ children }) {
@@ -22,7 +23,11 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/auth" replace />;
   }
 
-  return children;
+  return (
+    <>
+      {children}
+    </>
+  );
 }
 
 export default function App() {
@@ -49,6 +54,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/book/:id" element={<BookDetailsPage />} />
         <Route path="/author/:id" element={<AuthorDetailsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
