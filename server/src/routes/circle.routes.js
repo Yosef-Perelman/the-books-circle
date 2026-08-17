@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { requireCircleMember } from '../middleware/requireCircleMember.js';
 import { validate } from '../middleware/validate.js';
 import * as circleController from '../controllers/circle.controller.js';
-import { createCircleSchema, joinCircleSchema } from '../schemas/circle.schema.js';
+import { createCircleSchema, joinCircleSchema, leaderboardQuerySchema } from '../schemas/circle.schema.js';
 
 const router = Router();
 
@@ -14,5 +14,12 @@ router.post('/', requireAuth, validate(createCircleSchema), asyncHandler(circleC
 router.post('/join', requireAuth, validate(joinCircleSchema), asyncHandler(circleController.join));
 router.get('/:id', requireAuth, requireCircleMember, asyncHandler(circleController.getOne));
 router.get('/:id/feed', requireAuth, requireCircleMember, asyncHandler(circleController.getFeed));
+router.get(
+  '/:id/leaderboard',
+  requireAuth,
+  requireCircleMember,
+  validate(leaderboardQuerySchema, 'query'),
+  asyncHandler(circleController.getLeaderboard)
+);
 
 export default router;

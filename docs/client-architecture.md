@@ -31,18 +31,18 @@ Pages are routes. **Modals are not routes** — they're overlay state.
 
 ## Modals (overlay state, in `uiStore`)
 
-`AddBookModal` · `InterviewModal` · `JoinCreateCircleModal` · `ConfirmReadingDialog` · `CommentsDrawer`
+`AddBookModal` · `InterviewModal` · `JoinCreateCircleModal` · `ConfirmReadingDialog` · `CommentsDrawer` · `AboutModal`
 
 ```js
 // uiStore
-{ modal: null | { type: 'addBook' | 'interview' | 'joinCircle' | 'confirmReading', props: {} },
+{ modal: null | { type: 'addBook' | 'interview' | 'joinCircle' | 'confirmReading' | 'about', props: {} },
   openModal: (type, props) => ...,
   closeModal: () => ... }
 ```
 
 One modal at a time. Opening a second replaces the first. Exception: `InterviewModal` may open directly from `AddBookModal`'s flow — that's a replace, not a stack.
 
-**Implemented so far:** `uiStore` exists with `modal`/`openModal`/`closeModal` exactly as above. `AddBookModal` (opened from both `AppShell` and `FeedPage`'s `PostComposer`) and `JoinCreateCircleModal` both go through it now — this is what made a single shared `AddBookModal` instance possible instead of one per trigger site. `InterviewModal` and `ConfirmReadingDialog` aren't wired up yet; they'll use the same `modal.type` switch when built.
+**Implemented so far:** `uiStore` exists with `modal`/`openModal`/`closeModal` exactly as above. `AddBookModal` (opened from both `AppShell` and `FeedPage`'s `PostComposer`) and `JoinCreateCircleModal` both go through it now — this is what made a single shared `AddBookModal` instance possible instead of one per trigger site. `AboutModal` (note 20) is also wired up, opened from the navbar's "About" item on both desktop and the mobile drawer. `InterviewModal` and `ConfirmReadingDialog` aren't wired up yet; they'll use the same `modal.type` switch when built.
 
 ## Stores (Zustand)
 

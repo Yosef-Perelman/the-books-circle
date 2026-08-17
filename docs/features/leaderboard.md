@@ -6,7 +6,7 @@
 
 A segmented control (All-Time / Monthly) above a **2×2 grid** of category cards. One column on mobile.
 
-Each card: category title (`h2`), a one-line `muted` explanation, then the top 3 with rank badges, then a `muted` `···` row standing in for everyone else.
+Each card: category title (`h2`), a one-line `muted` explanation, then the top 3 with rank badges, then — only when the circle has more than 3 members — a `muted` `+n more` row giving the real remainder count. A circle with 3 or fewer members shows no trailing row at all; there's no one left to stand in for.
 
 ```
 ┌─── Read Books ────────────┐  ┌─── Various Genres ────────┐
@@ -14,7 +14,7 @@ Each card: category title (`h2`), a one-line `muted` explanation, then the top 3
 │ ① Avi      7              │  │ ① Dan      5              │
 │ ② Dan      5              │  │ ② Avi      4              │
 │ ③ Ben      4              │  │ ③ Gadi     2              │
-│ ···                       │  │ ···                       │
+│ +2 more                   │  │ +2 more                   │
 └───────────────────────────┘  └───────────────────────────┘
 ┌─── Most Pages ────────────┐  ┌─── Reading Streak ────────┐
 ```
@@ -73,9 +73,9 @@ GET /api/circles/:id/leaderboard?period=month|all
     "genres": [ ... ], "pages": [ ... ], "streak": [ ... ] } } }
 ```
 
-Each array contains **every member**, ordered, including zeros — the client slices to 3. Returning everyone means the "···" row can show a real remainder count and a future "see all" is free.
+Each array contains **every member**, ordered, including zeros — the client slices to 3. Returning everyone means the `+n more` row can show a real remainder count and a future "see all" is free.
 
-`requireAuth` + `requireCircleMember`. Non-members get 403.
+`requireAuth` + `requireCircleMember`. Non-members get **404, not 403** — same rule as the feed (`features/feed.md`): never reveal that a circle you're not in exists.
 
 ## Computation
 

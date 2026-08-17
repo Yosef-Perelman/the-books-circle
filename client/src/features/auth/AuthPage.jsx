@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, Button, Title, Text, Stack, Container, Center, Group, Box, SegmentedControl } from '@mantine/core';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+import { useSearchParams } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
 import { supabase } from '../../config/supabase';
 import { IconBrandGoogleFilled } from '@tabler/icons-react';
 
@@ -9,9 +9,6 @@ export default function AuthPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'login';
   const isLogin = mode === 'login';
-  const navigate = useNavigate();
-  
-  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -22,9 +19,9 @@ export default function AuthPage() {
         redirectTo: window.location.origin + '/feed'
       }
     });
-    
+
     if (error) {
-      console.error("Error logging in with Google:", error.message);
+      notifications.show({ color: 'red', message: `Could not sign in with Google: ${error.message}` });
       setLoading(false);
     }
   };
@@ -81,25 +78,40 @@ export default function AuthPage() {
           <Box bg="surface" p={50} style={{ width: '50%', display: 'flex', flexDirection: 'column' }}>
             
             <Stack gap="xl" style={{ flex: 1, justifyContent: 'center' }}>
+              <SegmentedControl
+                value={isLogin ? 'login' : 'register'}
+                onChange={(value) => setSearchParams({ mode: value })}
+                data={[
+                  { label: 'Log in', value: 'login' },
+                  { label: 'Sign up', value: 'register' }
+                ]}
+                radius="xl"
+                color="terracotta"
+                bg="cream"
+                styles={{ label: { fontWeight: 600 } }}
+              />
+
               <Box>
                 <Title order={2} c="ink" mb="xs">
-                  Welcome back
+                  {isLogin ? 'Welcome back' : 'Welcome'}
                 </Title>
                 <Text c="muted" size="sm">
-                  Log in or create an account to see what your circles are reading.
+                  {isLogin
+                    ? 'Log in to see what your circles are reading.'
+                    : 'Create an account to start your first reading circle.'}
                 </Text>
               </Box>
 
-              <Button 
-                size="xl" 
-                radius="xl" 
-                color="dark" 
+              <Button
+                size="xl"
+                radius="xl"
+                color="dark"
                 leftSection={<IconBrandGoogleFilled />}
                 loading={loading}
                 onClick={handleGoogleLogin}
                 style={{ fontSize: '1.1rem' }}
               >
-                Continue with Google
+                {isLogin ? 'Continue with Google' : 'Sign up with Google'}
               </Button>
 
             </Stack>

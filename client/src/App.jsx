@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import AppShell from './components/AppShell';
+import WelcomePage from './features/auth/WelcomePage';
 import AuthPage from './features/auth/AuthPage';
 import FeedPage from './features/feed/FeedPage';
 import ProfilePage from './features/profile/ProfilePage';
@@ -30,7 +31,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/feed" replace /> : <AuthPage />} />
+      <Route path="/" element={user ? <Navigate to="/feed" replace /> : <WelcomePage />} />
       <Route path="/auth" element={user ? <Navigate to="/feed" replace /> : <AuthPage />} />
 
       {/* Protected Routes wrapped in AppShell layout */}

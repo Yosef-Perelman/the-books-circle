@@ -30,9 +30,9 @@ Agree on the `Post` and `UserBook` JSON shapes from `docs/api-contract.md` befor
 ## Stage 1 — foundations (nothing else works without these)
 
 **A**
-- [ ] `POST /api/circles`, `POST /api/circles/join`, `GET /api/circles/:id` + invite code generator
-- [ ] `circleStore` + real circles sidebar and members sidebar (replaces hardcoded lists)
-- [ ] New-circle / join modal → activates the `new circle` button *(note 21: name only, image optional → skip)*
+- [x] `POST /api/circles`, `POST /api/circles/join`, `GET /api/circles/:id` + invite code generator
+- [x] `circleStore` + real circles sidebar and members sidebar (replaces hardcoded lists)
+- [x] New-circle / join modal → activates the `new circle` button *(note 21: name only, image optional → skip)*
 
 **B**
 - [ ] `book.model.findOrCreate` — ISBN, then title+author, then insert (`docs/database.md`)
@@ -46,12 +46,12 @@ Agree on the `Post` and `UserBook` JSON shapes from `docs/api-contract.md` befor
 ## Stage 2 — the instructor's task list
 
 **A**
-- [ ] `GET /api/circles/:id/feed` + `FeedPage` renders real posts *(note 7: simple text posts, no cover images)*
-- [ ] Likes — `POST`/`DELETE /api/posts/:id/like`
-- [ ] Note 5: highlight the active circle
-- [ ] Note 6: loader while a circle's feed loads
-- [ ] Note 9: show real date + time instead of `2h`
-- [ ] Note 4: member avatars link to `/profile/:userId`
+- [x] `GET /api/circles/:id/feed` + `FeedPage` renders real posts *(note 7: simple text posts, no cover images)*
+- [x] Likes — `POST`/`DELETE /api/posts/:id/like`
+- [x] Note 5: highlight the active circle
+- [x] Note 6: loader while a circle's feed loads
+- [x] Note 9: show real date + time instead of `2h`
+- [x] Note 4: member avatars link to `/profile/:userId`
 
 **B**
 - [ ] `PATCH /api/user-books/:id` (status) → creates `started` post. Reject `finished` here with 400
@@ -66,12 +66,12 @@ Agree on the `Post` and `UserBook` JSON shapes from `docs/api-contract.md` befor
 ## Stage 3 — ratings, interview, polish
 
 **A**
-- [ ] `GET /api/circles/:id/leaderboard?period=month|year` — 3 categories: books read, pages, genres
-- [ ] `LeaderboardPage` wired (the existing `LeaderboardCard` is reusable) *(note 19: real member list, remove the `". . ."`)*
-- [ ] Notes 1, 2, 3: home button in navbar, real logo, bigger bottom margin
-- [ ] Notes 22–24: route the orphaned `WelcomePage` at `/`, `AuthPage` at `/auth`, "Welcome" not "Welcome back", add a register button
-- [ ] Note 20: about button explaining the app
-- [ ] Task: make logout smooth
+- [x] `GET /api/circles/:id/leaderboard?period=month|all` — 4 categories: books read, pages, genres, reading streak
+- [x] `LeaderboardPage` wired (the existing `LeaderboardCard` is reusable) *(note 19: real member list, remove the `". . ."`, replaced with a real `+n more` remainder)*
+- [x] Notes 1, 2, 3: home button in navbar, real logo, bigger bottom margin
+- [x] Notes 22–24: route the orphaned `WelcomePage` at `/`, `AuthPage` at `/auth`, "Welcome" not "Welcome back", add a register button
+- [x] Note 20: about button explaining the app
+- [x] Task: make logout smooth
 
 **B**
 - [ ] `InterviewModal` revived — opens on status → `finished` *(note 16)*, with `post` + `cancel` buttons at the bottom *(note 17, missing from the mockup)*
@@ -86,17 +86,14 @@ Agree on the `Post` and `UserBook` JSON shapes from `docs/api-contract.md` befor
 
 - **Comments** — instructor approved deferring: *"אפשר להשאיר את הפיצ'ר של תגובות לשלב ב', ולהתחיל רק עם לייקים"* (note 8). Likes only.
 - **Photo scan** (note 14, *"אם זה אפשרי"*) — stretch. Needs `multer` + `gemini.js` + `storage.js`, all missing. Only after Stage 3 is green.
-- **Reading-streak category** — note 18 names only 3 as certain.
 - **Circle images** — note 21 says the name is required, image optional.
 
 ## Decisions to make
 
-- **The `post` composer button** is on the task list, but the DB `type` check only allows `started`/`added`/`finished`. Adding free-text posts = one-line migration adding `'text'` (`user_book_id` is already nullable for this). ~1h, A's side.
-- **Leaderboard period**: the PDF says monthly **and yearly** (*חודשי ושנתי*), but `docs/api-contract.md` says `month|all`. Pick one and update the doc.
+*(none open — both resolved in Stage 3: the composer stays button-only per `feed.md`, no `'text'` post type needed; leaderboard period shipped as `month|all` with all four categories including streak, docs updated.)*
 
 ## Before submitting
 
 - Delete `server/test_google.js`, `test_ol*.js` (scratch files)
-- Delete `client/src/api/auth.js` — it calls `/auth/login` and `/auth/register`, which don't exist
 - Test with **two Google accounts in two browser profiles** — single-user testing hides every authorization bug
 - Verify a user can't PATCH someone else's `user_books` row (should be 403)
