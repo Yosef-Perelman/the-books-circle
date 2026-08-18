@@ -25,7 +25,7 @@ const searchBooksExternalDeclaration = {
 
 const getMyReadingListDeclaration = {
   name: "get_my_reading_list",
-  description: "Get the current user's reading list. It returns books organized by their status: want, reading, or finished.",
+  description: "Get the current user's reading list. It returns books organized by their status: want, reading, or finished, and includes their star rating (out of 5). Use this to understand the user's tastes before recommending books.",
   parameters: {
     type: "OBJECT",
     properties: {}
@@ -60,18 +60,45 @@ const addBookToListDeclaration = {
   }
 };
 
+const getRecommendedCirclesDeclaration = {
+  name: "get_recommended_circles",
+  description: "Get a list of reading circles that the user is NOT currently a member of. Use this to recommend new communities to join.",
+  parameters: {
+    type: "OBJECT",
+    properties: {}
+  }
+};
+
+const searchReviewsDeclaration = {
+  name: "search_reviews",
+  description: "Search for reviews written by other users for a specific book title.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      book_title: {
+        type: "STRING",
+        description: "The title of the book to search reviews for."
+      }
+    },
+    required: ["book_title"]
+  }
+};
+
 const tools = [{
   functionDeclarations: [
     searchBooksExternalDeclaration,
     getMyReadingListDeclaration,
     getCircleActivityDeclaration,
-    addBookToListDeclaration
+    addBookToListDeclaration,
+    getRecommendedCirclesDeclaration,
+    searchReviewsDeclaration
   ]
 }];
 
 const systemInstruction = `You are the AI Librarian for 'The Books Circle', a social reading app. 
 You are friendly, concise, and deeply knowledgeable about books.
 Your goal is to help the user find books, manage their reading list, and connect with what their friends are reading.
+When recommending books, always check the user's reading list first using get_my_reading_list. Pay close attention to the books they have finished and their star ratings (e.g., recommend things similar to their 4 or 5 star books). Avoid recommending books they already have or rated poorly.
 Always use your tools to fetch real data when the user asks about books, their list, or their friends.
 When a user asks to add a book, use the search_books_external tool first to find the exact book_id if you don't have it, and then use the add_book_to_list tool.
 Keep your responses short and engaging. Format lists cleanly.`;
@@ -113,6 +140,14 @@ async function handleToolCall(functionCall, userId) {
           source: 'search'
         });
         return { result: { success: true, message: `Added ${bookDetails.title} to list as ${args.status}` } };
+      }
+      case 'get_recommended_circles': {
+        const circles = await CircleModel.getRecommendedCircles(userId);
+        return { result: circles };
+      }
+      case 'search_reviews': {
+        const reviews = await PostModel.searchReviews(args.book_title);
+        return { result: reviews };
       }
       default:
         return { error: `Unknown tool: ${name}` };

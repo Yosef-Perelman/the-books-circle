@@ -18,5 +18,11 @@ export const circlesApi = {
   },
   getLeaderboard: async (circleId) => {
     return await apiClient(`/circles/${circleId}/leaderboard`);
+  },
+  getCircleById: async (id) => {
+    return await apiClient(`/circles/${id}`);
+  },
+  joinCircleById: async (id) => {
+    return await apiClient(`/circles/${id}/join`, { method: 'POST' });
   }
 };

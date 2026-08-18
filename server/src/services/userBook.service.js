@@ -4,7 +4,7 @@ import * as PostModel from '../models/post.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { STATUS, POST_TYPE, SOURCE } from '../utils/constants.js';
 
-export async function addBook({ userId, bookData, status = STATUS.WANT, source = SOURCE.SEARCH }) {
+export async function addBook({ userId, bookData, status = STATUS.WANT, source = SOURCE.SEARCH, rating = null }) {
   // 1. Resolve or create the catalog book
   const book = await BookModel.findOrCreate(bookData);
 
@@ -17,7 +17,8 @@ export async function addBook({ userId, bookData, status = STATUS.WANT, source =
       status: status,
       source: source,
       started_at: status === STATUS.READING ? new Date().toISOString() : null,
-      finished_at: status === STATUS.FINISHED ? new Date().toISOString() : null
+      finished_at: status === STATUS.FINISHED ? new Date().toISOString() : null,
+      rating: rating
     })
     .select()
     .single();
@@ -40,12 +41,58 @@ export async function addBook({ userId, bookData, status = STATUS.WANT, source =
   return { userBook, book };
 }
 
+export async function updateRating(userBookId, userId, rating) {
+  const { error } = await supabase
+    .from('user_books')
+    .update({ rating })
+    .eq('id', userBookId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return true;
+}
+
+export async function updateStatus(userBookId, userId, status) {
+  const updates = { status };
+  if (status === STATUS.READING) updates.started_at = new Date().toISOString();
+  if (status === STATUS.FINISHED) updates.finished_at = new Date().toISOString();
+
+  const { error } = await supabase
+    .from('user_books')
+    .update(updates)
+    .eq('id', userBookId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  
+  // Create a new post for status change
+  await PostModel.createPostForAllCircles({
+    userId,
+    type: status === STATUS.READING ? POST_TYPE.STARTED : (status === STATUS.FINISHED ? POST_TYPE.FINISHED : POST_TYPE.ADDED),
+    userBookId
+  });
+
+  return true;
+}
+
+export async function removeBook(userBookId, userId) {
+  const { error } = await supabase
+    .from('user_books')
+    .delete()
+    .eq('id', userBookId)
+    .eq('user_id', userId);
+    
+  if (error) throw error;
+  return true;
+}
+
 export async function getUserBooks(userId) {
   const { data, error } = await supabase
     .from('user_books')
     .select(`
       id,
       status,
+      rating,
       started_at,
       finished_at,
       books (
@@ -66,6 +113,7 @@ export async function getUserBooks(userId) {
   return data.map(ub => ({
     id: ub.id, // The user_book id (useful for reviews/status changes)
     status: ub.status,
+    rating: ub.rating,
     book: {
       id: ub.books.id,
       title: ub.books.title,

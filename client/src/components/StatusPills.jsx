@@ -1,6 +1,7 @@
-import { Group, Badge } from '@mantine/core';
+import { Group, Badge, ActionIcon, Tooltip } from '@mantine/core';
+import { IconX } from '@tabler/icons-react';
 
-export default function StatusPills({ status, interactive = false, onStatusChange }) {
+export default function StatusPills({ status, interactive = false, onStatusChange, onRemove }) {
   const getVariant = (matchStatus) => status === matchStatus ? 'filled' : 'outline';
   const getColor = (matchStatus) => status === matchStatus ? 'terracotta' : 'line';
   const getTextColor = (matchStatus) => status === matchStatus ? 'white' : 'muted';
@@ -47,6 +48,18 @@ export default function StatusPills({ status, interactive = false, onStatusChang
       >
         Finished
       </Badge>
+      {interactive && onRemove && (
+        <Tooltip label="Remove from list">
+          <ActionIcon 
+            variant="subtle" 
+            color="red" 
+            radius="xl"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          >
+            <IconX size={18} stroke={2.5} />
+          </ActionIcon>
+        </Tooltip>
+      )}
     </Group>
   );
 }

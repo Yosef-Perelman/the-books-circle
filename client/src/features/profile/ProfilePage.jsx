@@ -1,17 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Title, Text, Group, Avatar, Stack, Tabs, Box, Loader, Center } from '@mantine/core';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import BookCard from '../../components/BookCard';
+import PostCard from '../feed/PostCard';
 import { booksApi } from '../../api/booksApi';
 import { usersApi } from '../../api/usersApi';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const authUser = useAuthStore(state => state.user);
   const [profileUser, setProfileUser] = useState(null);
   const [books, setBooks] = useState([]);
+  const [circles, setCircles] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('finished');
 
@@ -30,9 +34,20 @@ export default function ProfilePage() {
           const userObj = await usersApi.getUser(id);
           if (isMounted) setProfileUser({ id: userObj.id, displayName: userObj.display_name, avatarUrl: userObj.avatar_url });
         }
+        const currentId = id || authUser?.id;
+        if (!currentId) return;
         
-        const booksData = await booksApi.getUserBooks(id);
-        if (isMounted) setBooks(booksData);
+        const [booksData, circlesData, postsData] = await Promise.all([
+          booksApi.getUserBooks(currentId),
+          usersApi.getUserCircles(currentId),
+          usersApi.getUserPosts(currentId)
+        ]);
+
+        if (isMounted) {
+          setBooks(booksData);
+          setCircles(circlesData);
+          setPosts(postsData);
+        }
       } catch (err) {
         console.error("Profile load error:", err);
         if (isMounted) notifications.show({ title: 'Error', message: 'Failed to load profile', color: 'red' });
@@ -44,7 +59,38 @@ export default function ProfilePage() {
     loadProfile();
 
     return () => { isMounted = false; };
-  }, [id, isOwnProfile]);
+  }, [id, isOwnProfile, authUser?.id]);
+
+  const handleStatusChange = async (bookId, newStatus) => {
+    try {
+      await booksApi.updateUserBookStatus(bookId, newStatus);
+      setBooks(current => current.map(b => b.id === bookId ? { ...b, status: newStatus } : b));
+      notifications.show({ title: 'Success', message: 'Book status updated', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Failed to update status', color: 'red' });
+    }
+  };
+
+  const handleRatingChange = async (bookId, newRating) => {
+    try {
+      await booksApi.updateUserBookRating(bookId, newRating);
+      setBooks(current => current.map(b => b.id === bookId ? { ...b, rating: newRating } : b));
+      notifications.show({ title: 'Success', message: 'Rating saved', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Failed to save rating', color: 'red' });
+    }
+  };
+
+  const handleRemoveBook = async (bookId) => {
+    if (!window.confirm('Are you sure you want to remove this book from your lists?')) return;
+    try {
+      await booksApi.removeUserBook(bookId);
+      setBooks(current => current.filter(b => b.id !== bookId));
+      notifications.show({ title: 'Success', message: 'Book removed', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Failed to remove book', color: 'red' });
+    }
+  };
 
   const booksByStatus = useMemo(() => {
     const grouped = { want: [], reading: [], finished: [] };
@@ -128,12 +174,46 @@ export default function ProfilePage() {
             >
               Finished
             </Tabs.Tab>
+            <Tabs.Tab 
+              value="posts" 
+              px="xl" 
+              py="md"
+              style={(theme) => ({ 
+                fontSize: '1.1rem',
+                color: activeTab === 'posts' ? '#C96F4B' : '#8A7E70',
+                fontWeight: activeTab === 'posts' ? 600 : 400,
+                borderBottom: activeTab === 'posts' ? '3px solid #C96F4B' : '3px solid transparent'
+              })}
+            >
+              Posts & Reviews
+            </Tabs.Tab>
+            <Tabs.Tab 
+              value="circles" 
+              px="xl" 
+              py="md"
+              style={(theme) => ({ 
+                fontSize: '1.1rem',
+                color: activeTab === 'circles' ? '#C96F4B' : '#8A7E70',
+                fontWeight: activeTab === 'circles' ? 600 : 400,
+                borderBottom: activeTab === 'circles' ? '3px solid #C96F4B' : '3px solid transparent'
+              })}
+            >
+              Circles
+            </Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="want">
             <Stack gap="md">
               {booksByStatus.want.map(ub => (
-                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+                <BookCard 
+                  key={ub.id} 
+                  variant="list" 
+                  book={{...ub.book, status: ub.status, stars: ub.rating}} 
+                  interactive={isOwnProfile}
+                  onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
+                  onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
+                  onRemove={() => handleRemoveBook(ub.id)}
+                />
               ))}
               {booksByStatus.want.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
             </Stack>
@@ -142,7 +222,15 @@ export default function ProfilePage() {
           <Tabs.Panel value="reading">
             <Stack gap="md">
               {booksByStatus.reading.map(ub => (
-                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+                <BookCard 
+                  key={ub.id} 
+                  variant="list" 
+                  book={{...ub.book, status: ub.status, stars: ub.rating}} 
+                  interactive={isOwnProfile}
+                  onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
+                  onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
+                  onRemove={() => handleRemoveBook(ub.id)}
+                />
               ))}
               {booksByStatus.reading.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
             </Stack>
@@ -151,9 +239,61 @@ export default function ProfilePage() {
           <Tabs.Panel value="finished">
             <Stack gap="md">
               {booksByStatus.finished.map(ub => (
-                <BookCard key={ub.id} variant="list" book={{...ub.book, status: ub.status}} />
+                <BookCard 
+                  key={ub.id} 
+                  variant="list" 
+                  book={{...ub.book, status: ub.status, stars: ub.rating}} 
+                  interactive={isOwnProfile}
+                  onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
+                  onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
+                  onRemove={() => handleRemoveBook(ub.id)}
+                />
               ))}
               {booksByStatus.finished.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="posts">
+            <Stack gap="md">
+              {posts.map(post => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onReactionUpdate={(postId, increment) => {
+                    setPosts(current => current.map(p => {
+                      if (p.id === postId) {
+                        return {
+                          ...p,
+                          userReacted: increment > 0,
+                          reactionsCount: p.reactionsCount + increment
+                        };
+                      }
+                      return p;
+                    }));
+                  }}
+                  onCommentAdded={(postId) => {
+                    setPosts(current => current.map(p => p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p));
+                  }}
+                />
+              ))}
+              {posts.length === 0 && <Text c="dimmed" ta="center" py="xl">No posts or reviews yet.</Text>}
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="circles">
+            <Stack gap="md">
+              {circles.map(circle => (
+                <Box 
+                  key={circle.id} 
+                  p="md" 
+                  style={{ border: '1px solid #EADFC9', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer' }}
+                  onClick={() => navigate(`/circle/${circle.id}`)}
+                >
+                  <Text fw={600} size="lg">{circle.name}</Text>
+                  <Text size="sm" c="dimmed">{circle.description || `${circle.memberCount} members`}</Text>
+                </Box>
+              ))}
+              {circles.length === 0 && <Text c="dimmed" ta="center" py="xl">Not a member of any circles.</Text>}
             </Stack>
           </Tabs.Panel>
         </Tabs>
