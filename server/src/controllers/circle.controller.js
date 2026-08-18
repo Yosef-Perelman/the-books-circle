@@ -59,3 +59,22 @@ export const leaveCircleCtrl = asyncHandler(async (req, res) => {
   await CircleModel.leaveCircle(id, req.user.id);
   res.json({ data: { success: true } });
 });
+
+export const getCircleByIdCtrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const circle = await CircleModel.getCircleById(id);
+  res.json({ data: circle });
+});
+
+export const joinCircleByIdCtrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  try {
+    const circle = await CircleModel.joinCircleById(id, req.user.id);
+    res.json({ data: circle });
+  } catch (err) {
+    if (err.message === 'Circle not found' || err.message === 'Already a member of this circle') {
+      return res.status(400).json({ error: err.message });
+    }
+    throw err;
+  }
+});

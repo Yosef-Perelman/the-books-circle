@@ -16,6 +16,9 @@ export const booksApi = {
   getAuthorDetails: async (id) => {
     return await apiClient(`/books/authors/${encodeURIComponent(id)}`);
   },
+  getBookReviews: async (id) => {
+    return await apiClient(`/books/${encodeURIComponent(id)}/reviews`);
+  },
   addUserBook: async (data) => {
     return await apiClient('/user-books', {
       method: 'POST',
@@ -25,5 +28,31 @@ export const booksApi = {
   getUserBooks: async (userId = null) => {
     const query = userId ? `?userId=${userId}` : '';
     return await apiClient(`/user-books${query}`);
+  },
+  updateUserBookStatus: async (userBookId, status) => {
+    return await apiClient(`/user-books/${userBookId}/status`, {
+      method: 'PATCH',
+      body: { status }
+    });
+  },
+  updateUserBookRating: async (userBookId, rating) => {
+    return await apiClient(`/user-books/${userBookId}/rating`, {
+      method: 'PATCH',
+      body: { rating }
+    });
+  },
+  removeUserBook: async (userBookId) => {
+    return await apiClient(`/user-books/${userBookId}`, {
+      method: 'DELETE'
+    });
+  },
+  getInterviewQuestions: async (userBookId) => {
+    return await apiClient(`/user-books/${userBookId}/interview/questions`);
+  },
+  generateReview: async (userBookId, qa) => {
+    return await apiClient(`/user-books/${userBookId}/interview/review`, {
+      method: 'POST',
+      body: { qa }
+    });
   }
 };

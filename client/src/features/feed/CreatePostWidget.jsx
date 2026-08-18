@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Group, Avatar, Button, Textarea, ActionIcon, Text, Box } from '@mantine/core';
+import { Card, Group, Avatar, Button, Textarea, ActionIcon, Text, Box, Rating, Stack } from '@mantine/core';
 import { IconBook, IconPencil, IconX } from '@tabler/icons-react';
 import { useAuthStore } from '../../stores/authStore';
 import BookSelectModal from './BookSelectModal';
@@ -12,6 +12,7 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
   const [selectedBook, setSelectedBook] = useState(null); // { userBookId?, bookDetails }
   const [modalOpened, setModalOpened] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rating, setRating] = useState(0);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -23,12 +24,14 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
         type: selectedBook ? 'review' : 'text',
         content: content.trim(),
         userBookId: selectedBook?.userBookId,
-        book: selectedBook?.userBookId ? null : selectedBook?.bookDetails
+        book: selectedBook?.userBookId ? null : selectedBook?.bookDetails,
+        rating: selectedBook && rating > 0 ? rating : null
       };
       await postsApi.createPost(payload);
       setContent('');
       setSelectedBook(null);
       setPostType('text');
+      setRating(0);
       onPostCreated();
     } catch (err) {
       console.error(err);
@@ -46,6 +49,7 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
   const clearBook = () => {
     setSelectedBook(null);
     setPostType('text');
+    setRating(0);
   };
 
   return (
@@ -68,11 +72,12 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
               <Card withBorder radius="md" p="xs" mt="sm" bg="gray.0">
                 <Group justify="space-between" wrap="nowrap">
                   <Group wrap="nowrap">
-                    <Avatar src={selectedBook.bookDetails.coverUrl} radius="sm" size="md" />
-                    <div>
+                    <Avatar src={selectedBook.bookDetails.coverUrl} radius="sm" size="xl" />
+                    <Stack gap={4}>
                       <Text size="sm" fw={600} lineClamp={1}>{selectedBook.bookDetails.title}</Text>
-                      <Text size="xs" c="dimmed">Attached to review</Text>
-                    </div>
+                      <Text size="xs" c="dimmed">Rate this book (optional)</Text>
+                      <Rating value={rating} onChange={setRating} color="terracotta" />
+                    </Stack>
                   </Group>
                   <ActionIcon color="gray" variant="subtle" onClick={clearBook}>
                     <IconX size={16} />

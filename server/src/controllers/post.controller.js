@@ -37,7 +37,7 @@ export const addCommentCtrl = asyncHandler(async (req, res) => {
 });
 
 export const createPostCtrl = asyncHandler(async (req, res) => {
-  const { type, content, book, userBookId } = req.body;
+  const { type, content, book, userBookId, rating, circleId } = req.body;
   const userId = req.user.id;
 
   if (!type || !['text', 'review'].includes(type)) {
@@ -61,7 +61,8 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
           userId,
           bookData: book,
           status: STATUS.WANT, // Just attach to shelf if not present
-          source: SOURCE.MANUAL
+          source: SOURCE.MANUAL,
+          rating: rating || null
         });
         finalUserBookId = added.userBook.id;
       } catch (err) {
@@ -79,15 +80,29 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
         }
       }
     }
+
+    if (finalUserBookId && rating) {
+      await UserBookService.updateRating(finalUserBookId, userId, rating);
+    }
   }
 
-  // Create post globally for all user's circles
-  await PostModel.createPostForAllCircles({
-    userId,
-    type,
-    content: content ? content.trim() : null,
-    userBookId: finalUserBookId
-  });
+  if (circleId && circleId !== 'global') {
+    await PostModel.createPost({
+      circleId,
+      userId,
+      type,
+      content: content ? content.trim() : null,
+      userBookId: finalUserBookId
+    });
+  } else {
+    // Create post globally for all user's circles
+    await PostModel.createPostForAllCircles({
+      userId,
+      type,
+      content: content ? content.trim() : null,
+      userBookId: finalUserBookId
+    });
+  }
 
   res.status(201).json({ data: { success: true } });
 });

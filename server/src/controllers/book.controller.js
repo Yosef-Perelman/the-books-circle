@@ -1,6 +1,7 @@
 import { searchBooks as searchGoogleBooks, getExploreBooks, getBookById, searchAuthors, getAuthorDetails } from '../integrations/googleBooks.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import * as PostModel from '../models/post.model.js';
 
 export const searchBooks = asyncHandler(async (req, res) => {
   const query = req.query.q;
@@ -38,4 +39,10 @@ export const getAuthorDetailsCtrl = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const author = await getAuthorDetails(id);
   res.json({ data: { author } });
+});
+
+export const getBookReviewsCtrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const reviews = await PostModel.getBookReviews(id);
+  res.json({ data: reviews });
 });

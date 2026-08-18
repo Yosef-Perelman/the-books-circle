@@ -4,6 +4,7 @@ import AppShell from './components/AppShell';
 import AuthPage from './features/auth/AuthPage';
 import FeedPage from './features/feed/FeedPage';
 import ProfilePage from './features/profile/ProfilePage';
+import CirclePage from './features/feed/CirclePage';
 import LeaderboardPage from './features/leaderboard/LeaderboardPage';
 import ExplorePage from './features/books/ExplorePage';
 import BookDetailsPage from './features/books/BookDetailsPage';
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/:id" element={<ProfilePage />} />
+        <Route path="/circle/:id" element={<CirclePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/search" element={<SearchPage />} />

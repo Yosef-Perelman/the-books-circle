@@ -24,6 +24,98 @@ export async function createPost({ circleId, userId, type, content = null, userB
   return mapPost(data);
 }
 
+export async function searchReviews(bookTitleQuery) {
+  // First, find books matching the title
+  const { data: books, error: booksError } = await supabase
+    .from('books')
+    .select('id')
+    .ilike('title', `%${bookTitleQuery}%`);
+    
+  if (booksError) throw booksError;
+  const bookIds = books.map(b => b.id);
+  if (bookIds.length === 0) return [];
+  
+  // Get user_books tied to these books
+  const { data: userBooks, error: ubError } = await supabase
+    .from('user_books')
+    .select('id')
+    .in('book_id', bookIds);
+    
+  if (ubError) throw ubError;
+  const userBookIds = userBooks.map(ub => ub.id);
+  if (userBookIds.length === 0) return [];
+  
+  // Find review posts
+  const { data: posts, error: postsError } = await supabase
+    .from('feed_posts')
+    .select(`
+      id, content, created_at,
+      users:user_id (display_name),
+      user_books:user_book_id (rating, books (title, author))
+    `)
+    .eq('type', 'review')
+    .in('user_book_id', userBookIds)
+    .limit(5);
+    
+  if (postsError) throw postsError;
+  
+  return posts.map(p => ({
+    reviewer: p.users?.display_name || 'Anonymous',
+    bookTitle: p.user_books?.books?.title,
+    author: p.user_books?.books?.author,
+    rating: p.user_books?.rating,
+    reviewContent: p.content,
+    date: p.created_at
+  }));
+}
+
+export async function getBookReviews(bookApiId) {
+  // First, find the internal book id for the given API ID
+  const { data: book } = await supabase
+    .from('books')
+    .select('id')
+    .eq('api_id', bookApiId)
+    .single();
+
+  if (!book) return [];
+
+  // Get user_books tied to this book
+  const { data: userBooks } = await supabase
+    .from('user_books')
+    .select('id')
+    .eq('book_id', book.id);
+    
+  if (!userBooks || userBooks.length === 0) return [];
+  const userBookIds = userBooks.map(ub => ub.id);
+  
+  // Find review posts
+  const { data: posts, error } = await supabase
+    .from('feed_posts')
+    .select(`
+      id, content, created_at,
+      circles:circle_id (id, name),
+      users:user_id (id, display_name, avatar_url),
+      user_books:user_book_id (rating)
+    `)
+    .eq('type', 'review')
+    .in('user_book_id', userBookIds)
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  
+  return posts.map(p => ({
+    id: p.id,
+    reviewerId: p.users?.id,
+    reviewerName: p.users?.display_name || 'Anonymous',
+    reviewerAvatar: p.users?.avatar_url,
+    circleId: p.circles?.id,
+    circleName: p.circles?.name || 'Global',
+    rating: p.user_books?.rating,
+    content: p.content,
+    createdAt: p.created_at
+  }));
+}
+
 // to. In MVP a user has one active circle, but this keeps multi-circle free.
 export async function createPostForAllCircles({ userId, type, content = null, userBookId = null }) {
   const circles = await CircleModel.findByUser(userId);
@@ -43,7 +135,7 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
       circles:circle_id (id, name),
       users:user_id (id, display_name, avatar_url),
       user_books:user_book_id (
-        id, status,
+        id, status, rating,
         books (id, title, author, cover_url, api_id)
       ),
       reactions (user_id),
@@ -87,6 +179,63 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
     userBook: row.user_books ? {
       id: row.user_books.id,
       status: row.user_books.status,
+      rating: row.user_books.rating,
+      book: row.user_books.books ? {
+        id: row.user_books.books.id,
+        title: row.user_books.books.title,
+        author: row.user_books.books.author,
+        coverUrl: row.user_books.books.cover_url,
+        apiId: row.user_books.books.api_id
+      } : null
+    } : null,
+    reactionsCount: row.reactions ? row.reactions.length : 0,
+    commentsCount: row.comments ? row.comments.length : 0,
+    userReacted: row.reactions ? row.reactions.some(r => r.user_id === currentUserId) : false
+  }));
+}
+
+export async function getFeedByUser(userId, currentUserId, offset = 0, limit = 10) {
+  const query = supabase
+    .from('feed_posts')
+    .select(`
+      id,
+      type,
+      content,
+      created_at,
+      circles:circle_id (id, name),
+      users:user_id (id, display_name, avatar_url),
+      user_books:user_book_id (
+        id, status, rating,
+        books (id, title, author, cover_url, api_id)
+      ),
+      reactions (user_id),
+      comments (id)
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  
+  return data.map(row => ({
+    id: row.id,
+    type: row.type,
+    content: row.content,
+    createdAt: row.created_at,
+    circle: row.circles ? {
+      id: row.circles.id,
+      name: row.circles.name
+    } : null,
+    user: row.users ? {
+      id: row.users.id,
+      name: row.users.display_name,
+      avatarUrl: row.users.avatar_url
+    } : null,
+    userBook: row.user_books ? {
+      id: row.user_books.id,
+      status: row.user_books.status,
+      rating: row.user_books.rating,
       book: row.user_books.books ? {
         id: row.user_books.books.id,
         title: row.user_books.books.title,

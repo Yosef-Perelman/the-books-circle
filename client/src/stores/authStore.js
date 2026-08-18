@@ -2,10 +2,22 @@ import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import { useCircleStore } from './circleStore';
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
   status: 'idle', // 'idle' | 'loading' | 'ready'
+  myCircleIds: [],
+  
+  refreshMyCircles: async () => {
+    try {
+      // Import circlesApi dynamically to avoid circular dependencies if any
+      const { circlesApi } = await import('../api/circlesApi');
+      const circles = await circlesApi.getMyCircles();
+      set({ myCircleIds: circles.map(c => c.id) });
+    } catch (err) {
+      console.error('Failed to refresh circles in authStore', err);
+    }
+  },
   
   initializeAuth: () => {
     // Check initial session
@@ -31,8 +43,17 @@ export const useAuthStore = create((set) => ({
       });
       if (session?.access_token) {
         localStorage.setItem('trc_token', session.access_token);
+        get().refreshMyCircles();
       } else {
         localStorage.removeItem('trc_token');
+        set({ myCircleIds: [] });
+      }
+    });
+    
+    // Fetch initial circles if already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.access_token) {
+        get().refreshMyCircles();
       }
     });
   },
@@ -40,6 +61,7 @@ export const useAuthStore = create((set) => ({
   logout: async () => {
     await supabase.auth.signOut();
     useCircleStore.getState().reset();
+    set({ myCircleIds: [] });
   }
 }));
 

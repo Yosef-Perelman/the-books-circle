@@ -117,6 +117,53 @@ export async function joinCircle(inviteCode, userId) {
   return mapCircle(circle, count || 1);
 }
 
+export async function joinCircleById(circleId, userId) {
+  const { data: circle, error: circleError } = await supabase
+    .from('circles')
+    .select('id, name, invite_code, created_at')
+    .eq('id', circleId)
+    .single();
+
+  if (circleError || !circle) throw new Error('Circle not found');
+
+  // Check if already a member
+  const isMem = await isMember(circle.id, userId);
+  if (isMem) throw new Error('Already a member of this circle');
+
+  const { error: memberError } = await supabase
+    .from('circle_members')
+    .insert({ circle_id: circle.id, user_id: userId });
+
+  if (memberError) throw memberError;
+
+  // Get new member count
+  const { count, error: countError } = await supabase
+    .from('circle_members')
+    .select('circle_id', { count: 'exact', head: true })
+    .eq('circle_id', circle.id);
+
+  if (countError) throw countError;
+
+  return mapCircle(circle, count || 1);
+}
+
+export async function getCircleById(circleId) {
+  const { data: circle, error } = await supabase
+    .from('circles')
+    .select('id, name, invite_code, created_at')
+    .eq('id', circleId)
+    .single();
+
+  if (error || !circle) throw new Error('Circle not found');
+
+  const { count } = await supabase
+    .from('circle_members')
+    .select('circle_id', { count: 'exact', head: true })
+    .eq('circle_id', circleId);
+
+  return mapCircle(circle, count || 0);
+}
+
 export async function leaveCircle(circleId, userId) {
   const { error } = await supabase
     .from('circle_members')
@@ -126,4 +173,28 @@ export async function leaveCircle(circleId, userId) {
 
   if (error) throw error;
   return true;
+}
+
+export async function getRecommendedCircles(userId) {
+  // Get circles the user is in
+  const { data: memberships } = await supabase
+    .from('circle_members')
+    .select('circle_id')
+    .eq('user_id', userId);
+    
+  const myCircleIds = memberships ? memberships.map(m => m.circle_id) : [];
+
+  let query = supabase
+    .from('circles')
+    .select('id, name, invite_code, created_at')
+    .limit(5);
+
+  if (myCircleIds.length > 0) {
+    query = query.not('id', 'in', `(${myCircleIds.join(',')})`);
+  }
+  
+  const { data: circles, error } = await query;
+  if (error) throw error;
+  
+  return circles.map(c => mapCircle(c, 0)); // Return approx info
 }

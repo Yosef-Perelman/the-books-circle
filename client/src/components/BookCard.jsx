@@ -1,4 +1,4 @@
-import { Card, Group, Stack, Text, Box, Paper } from '@mantine/core';
+import { Card, Group, Stack, Text, Box, Paper, Rating, Button } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import BookCover from './BookCover';
 import StarRating from './StarRating';
@@ -9,6 +9,9 @@ export default function BookCard({
   variant = 'grid', 
   interactive = false, 
   onStatusChange,
+  onRatingChange,
+  onRemove,
+  onWriteReview,
   w = '100%'
 }) {
   const navigate = useNavigate();
@@ -36,7 +39,28 @@ export default function BookCard({
             <Stack gap={2} mt={4}>
               <Text fw={700} size="lg" style={{ cursor: 'pointer' }} onClick={() => navigate(`/book/${book.apiId || book.id}`)}>{title}</Text>
               <Text size="sm" c="muted">{author}</Text>
-              {stars > 0 && <StarRating stars={stars} />}
+              {stars > 0 && !interactive && <StarRating stars={stars} />}
+              {interactive && (status === 'finished' || status === 'reading') && (
+                <Group gap="sm">
+                  <Rating 
+                    value={stars} 
+                    onChange={(val) => onRatingChange && onRatingChange(val)}
+                    color="yellow" 
+                    size="md" 
+                  />
+                  {status === 'finished' && onWriteReview && (
+                    <Button 
+                      variant="light" 
+                      color="terracotta" 
+                      size="xs" 
+                      radius="xl"
+                      onClick={(e) => { e.stopPropagation(); onWriteReview(); }}
+                    >
+                      Write Review
+                    </Button>
+                  )}
+                </Group>
+              )}
               {quote && (
                 <Text size="sm" fs="italic" mt="xs" c="ink">
                   "{quote}"
@@ -49,6 +73,7 @@ export default function BookCard({
             status={status} 
             interactive={interactive} 
             onStatusChange={onStatusChange} 
+            onRemove={onRemove}
           />
         </Group>
       </Card>

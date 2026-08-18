@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Menu } from '@mantine/core';
+import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Menu, Avatar, Card, Divider, Box } from '@mantine/core';
 import { useParams, useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconPlus, IconBook, IconCheck, IconBookmark } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
@@ -9,6 +9,7 @@ export default function BookDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [book, setBook] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -28,8 +29,12 @@ export default function BookDetailsPage() {
   useEffect(() => {
     async function loadBook() {
       try {
-        const res = await booksApi.getBookDetails(id);
-        setBook(res.book);
+        const [bookRes, reviewsRes] = await Promise.all([
+          booksApi.getBookDetails(id),
+          booksApi.getBookReviews(id)
+        ]);
+        setBook(bookRes.book);
+        setReviews(reviewsRes || []);
       } catch (err) {
         setError("Could not load book details.");
       } finally {
@@ -134,6 +139,56 @@ export default function BookDetailsPage() {
                 <div dangerouslySetInnerHTML={{ __html: book.description }} style={{ color: '#444', lineHeight: 1.6 }} />
               </div>
             )}
+
+            <Divider mt="xl" />
+
+            <Box mt="md">
+              <Title order={4} mb="lg">Community Reviews</Title>
+              {reviews.length === 0 ? (
+                <Text c="dimmed">No reviews yet. Be the first to share your thoughts!</Text>
+              ) : (
+                <Stack gap="md">
+                  {reviews.map(review => (
+                    <Card key={review.id} withBorder radius="md" p="md" shadow="sm">
+                      <Group align="flex-start" wrap="nowrap" mb="xs">
+                        <Avatar src={review.reviewerAvatar} radius="xl" size="md">
+                          {review.reviewerName?.charAt(0) || 'U'}
+                        </Avatar>
+                        <Box style={{ flex: 1 }}>
+                          <Group justify="space-between">
+                            <Text fw={600}>{review.reviewerName}</Text>
+                            {review.rating && (
+                              <Group gap={4}>
+                                {[...Array(Math.floor(review.rating))].map((_, i) => (
+                                  <Text key={i} c="terracotta" size="sm">★</Text>
+                                ))}
+                              </Group>
+                            )}
+                          </Group>
+                          <Text size="xs" c="dimmed">
+                            In {review.circleId ? (
+                              <Text 
+                                component="span" 
+                                c="terracotta" 
+                                style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                onClick={() => navigate(`/circle/${review.circleId}`)}
+                              >
+                                {review.circleName}
+                              </Text>
+                            ) : (
+                              review.circleName
+                            )}
+                          </Text>
+                        </Box>
+                      </Group>
+                      <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }} mt="sm">
+                        {review.content}
+                      </Text>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </Box>
           </Stack>
         </Grid.Col>
       </Grid>
