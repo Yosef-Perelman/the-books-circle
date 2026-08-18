@@ -1,4 +1,4 @@
-import { Card, Group, Stack, Text, Box, Paper, Rating } from '@mantine/core';
+import { Card, Group, Stack, Text, Box, Paper, Rating, Button } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import BookCover from './BookCover';
 import StarRating from './StarRating';
@@ -11,6 +11,7 @@ export default function BookCard({
   onStatusChange,
   onRatingChange,
   onRemove,
+  onWriteReview,
   w = '100%'
 }) {
   const navigate = useNavigate();
@@ -40,12 +41,25 @@ export default function BookCard({
               <Text size="sm" c="muted">{author}</Text>
               {stars > 0 && !interactive && <StarRating stars={stars} />}
               {interactive && (status === 'finished' || status === 'reading') && (
-                <Rating 
-                  value={stars} 
-                  onChange={(val) => onRatingChange && onRatingChange(val)}
-                  color="yellow" 
-                  size="md" 
-                />
+                <Group gap="sm">
+                  <Rating 
+                    value={stars} 
+                    onChange={(val) => onRatingChange && onRatingChange(val)}
+                    color="yellow" 
+                    size="md" 
+                  />
+                  {status === 'finished' && onWriteReview && (
+                    <Button 
+                      variant="light" 
+                      color="terracotta" 
+                      size="xs" 
+                      radius="xl"
+                      onClick={(e) => { e.stopPropagation(); onWriteReview(); }}
+                    >
+                      Write Review
+                    </Button>
+                  )}
+                </Group>
               )}
               {quote && (
                 <Text size="sm" fs="italic" mt="xs" c="ink">

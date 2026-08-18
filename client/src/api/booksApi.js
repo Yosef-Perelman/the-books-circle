@@ -45,5 +45,14 @@ export const booksApi = {
     return await apiClient(`/user-books/${userBookId}`, {
       method: 'DELETE'
     });
+  },
+  getInterviewQuestions: async (userBookId) => {
+    return await apiClient(`/user-books/${userBookId}/interview/questions`);
+  },
+  generateReview: async (userBookId, qa) => {
+    return await apiClient(`/user-books/${userBookId}/interview/review`, {
+      method: 'POST',
+      body: { qa }
+    });
   }
 };

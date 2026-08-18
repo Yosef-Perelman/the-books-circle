@@ -37,7 +37,7 @@ export const addCommentCtrl = asyncHandler(async (req, res) => {
 });
 
 export const createPostCtrl = asyncHandler(async (req, res) => {
-  const { type, content, book, userBookId, rating } = req.body;
+  const { type, content, book, userBookId, rating, circleId } = req.body;
   const userId = req.user.id;
 
   if (!type || !['text', 'review'].includes(type)) {
@@ -86,13 +86,23 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
     }
   }
 
-  // Create post globally for all user's circles
-  await PostModel.createPostForAllCircles({
-    userId,
-    type,
-    content: content ? content.trim() : null,
-    userBookId: finalUserBookId
-  });
+  if (circleId && circleId !== 'global') {
+    await PostModel.createPost({
+      circleId,
+      userId,
+      type,
+      content: content ? content.trim() : null,
+      userBookId: finalUserBookId
+    });
+  } else {
+    // Create post globally for all user's circles
+    await PostModel.createPostForAllCircles({
+      userId,
+      type,
+      content: content ? content.trim() : null,
+      userBookId: finalUserBookId
+    });
+  }
 
   res.status(201).json({ data: { success: true } });
 });

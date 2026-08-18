@@ -7,6 +7,7 @@ import PostCard from '../feed/PostCard';
 import { booksApi } from '../../api/booksApi';
 import { usersApi } from '../../api/usersApi';
 import { useAuthStore } from '../../stores/authStore';
+import InterviewModal from '../interview/InterviewModal';
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -18,6 +19,8 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('finished');
+  const [isInterviewOpen, setIsInterviewOpen] = useState(false);
+  const [interviewBook, setInterviewBook] = useState(null);
 
   // Determine if viewing own profile
   const isOwnProfile = !id || id === authUser?.id;
@@ -66,6 +69,15 @@ export default function ProfilePage() {
       await booksApi.updateUserBookStatus(bookId, newStatus);
       setBooks(current => current.map(b => b.id === bookId ? { ...b, status: newStatus } : b));
       notifications.show({ title: 'Success', message: 'Book status updated', color: 'green' });
+      
+      // If marked as finished, offer interview
+      if (newStatus === 'finished') {
+        const ub = books.find(b => b.id === bookId);
+        if (ub) {
+          setInterviewBook({ ...ub, status: 'finished' });
+          setIsInterviewOpen(true);
+        }
+      }
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Failed to update status', color: 'red' });
     }
@@ -213,6 +225,7 @@ export default function ProfilePage() {
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
                   onRemove={() => handleRemoveBook(ub.id)}
+                  onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
               {booksByStatus.want.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
@@ -230,6 +243,7 @@ export default function ProfilePage() {
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
                   onRemove={() => handleRemoveBook(ub.id)}
+                  onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
               {booksByStatus.reading.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
@@ -247,6 +261,7 @@ export default function ProfilePage() {
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
                   onRemove={() => handleRemoveBook(ub.id)}
+                  onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
               {booksByStatus.finished.length === 0 && <Text c="dimmed" ta="center" py="xl">No books in this list yet.</Text>}
@@ -299,6 +314,11 @@ export default function ProfilePage() {
         </Tabs>
         
       </Container>
+      <InterviewModal 
+        opened={isInterviewOpen} 
+        onClose={() => setIsInterviewOpen(false)} 
+        userBook={interviewBook} 
+      />
     </Box>
   );
 }
