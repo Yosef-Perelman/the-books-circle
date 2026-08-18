@@ -45,27 +45,32 @@ export default function FeedPage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (activeCircle) {
-      setLoading(true);
-      setOffset(0);
-      setHasMore(true);
+  const loadFeed = (silent = false) => {
+    if (!activeCircle) return;
+    if (!silent) setLoading(true);
+    setOffset(0);
+    setHasMore(true);
 
-      Promise.all([
-        activeCircle.id === 'global' ? Promise.resolve([]) : circlesApi.getMembers(activeCircle.id),
-        postsApi.getPosts(activeCircle.id, 0, 10)
-      ]).then(([membersData, postsData]) => {
-        setMembers(membersData || []);
-        setPosts(postsData || []);
-        if (!postsData || postsData.length < 10) {
-          setHasMore(false);
-        } else {
-          setOffset(10);
-        }
-      }).catch(err => {
-        console.error('Failed to fetch circle data:', err);
-      }).finally(() => setLoading(false));
-    }
+    Promise.all([
+      activeCircle.id === 'global' ? Promise.resolve([]) : circlesApi.getMembers(activeCircle.id),
+      postsApi.getPosts(activeCircle.id, 0, 10)
+    ]).then(([membersData, postsData]) => {
+      setMembers(membersData || []);
+      setPosts(postsData || []);
+      if (!postsData || postsData.length < 10) {
+        setHasMore(false);
+      } else {
+        setOffset(10);
+      }
+    }).catch(err => {
+      console.error('Failed to fetch circle data:', err);
+    }).finally(() => {
+      if (!silent) setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    loadFeed();
   }, [activeCircle]);
 
   useEffect(() => {
@@ -202,10 +207,12 @@ export default function FeedPage() {
       <Box style={{ flex: 1 }} bg="surface" p={40}>
         <Container size="sm" mx="auto" p={0}>
           
-          <CreatePostWidget 
-            onPostCreated={() => loadFeed(true)} 
-            activeCircle={activeCircle} 
-          />
+          {activeCircle && activeCircle.id !== 'global' && (
+            <CreatePostWidget 
+              onPostCreated={() => loadFeed(true)} 
+              activeCircle={activeCircle} 
+            />
+          )}
 
           <Stack gap="lg">
             {posts.length === 0 && (
@@ -230,6 +237,9 @@ export default function FeedPage() {
                 }}
                 onCommentAdded={(postId) => {
                   setPosts(current => current.map(p => p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p));
+                }}
+                onPostDeleted={(postId) => {
+                  setPosts(current => current.filter(p => p.id !== postId));
                 }}
               />
             ))}

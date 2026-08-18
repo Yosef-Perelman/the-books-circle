@@ -109,7 +109,7 @@ export default function InterviewModal({ opened, onClose, userBook }) {
         <Center py="xl">
           <Stack align="center" gap="sm">
             <Loader color="terracotta" />
-            <Text c="dimmed">The AI Librarian is preparing questions for you...</Text>
+            <Text c="dimmed">The AI is preparing questions for you...</Text>
           </Stack>
         </Center>
       )}

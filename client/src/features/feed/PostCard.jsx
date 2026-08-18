@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Card, Group, Avatar, Stack, Text, Box, Center, Loader, TextInput, Button, Modal } from '@mantine/core';
-import { IconHeart, IconMessageCircle } from '@tabler/icons-react';
+import { Card, Group, Avatar, Stack, Text, Box, Center, Loader, TextInput, Button, Modal, ActionIcon } from '@mantine/core';
+import { IconHeart, IconMessageCircle, IconTrash } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { postsApi } from '../../api/postsApi';
 import { circlesApi } from '../../api/circlesApi';
 import { useAuthStore } from '../../stores/authStore';
 
-export default function PostCard({ post, onReactionUpdate = () => {}, onCommentAdded = () => {} }) {
+export default function PostCard({ post, onReactionUpdate = () => {}, onCommentAdded = () => {}, onPostDeleted = () => {} }) {
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -16,7 +16,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
   const [loadingComments, setLoadingComments] = useState(false);
   const [joinModalOpened, setJoinModalOpened] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const { myCircleIds, refreshMyCircles } = useAuthStore();
+  const { user, myCircleIds, refreshMyCircles } = useAuthStore();
 
   const requireMembership = () => {
     if (post.circle && !myCircleIds.some(cId => String(cId) === String(post.circle.id))) {
@@ -26,7 +26,20 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
     return false;
   };
 
-  const handleLike = async () => {
+  const handleDeletePost = async (e) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await postsApi.deletePost(post.id);
+      onPostDeleted(post.id);
+      notifications.show({ title: 'Success', message: 'Post deleted', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Failed to delete post', color: 'red' });
+    }
+  };
+
+  const handleLike = async (e) => {
+    e.stopPropagation();
     if (requireMembership()) return;
     
     const isCurrentlyReacted = post.userReacted;
@@ -39,7 +52,8 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
     }
   };
 
-  const handleToggleComments = async () => {
+  const handleToggleComments = async (e) => {
+    e.stopPropagation();
     if (!showComments && comments.length === 0 && post.commentsCount > 0) {
       setLoadingComments(true);
       try {
@@ -68,17 +82,24 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
 
   return (
     <Card radius="xl" p="xl" withBorder style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
-      <Group mb="md" align="flex-start" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.user?.id}`)}>
-        <Avatar color="slate" radius="xl" src={post.user?.avatarUrl}>{post.user?.name?.charAt(0) || 'U'}</Avatar>
-        <Stack gap={0}>
-          <Text fw={600}>{post.user?.name || 'Unknown User'}</Text>
-          <Text size="xs" c="muted">
-            {post.type === 'text' ? 'Posted an update' : post.type === 'review' ? 'Wrote a review' : `${post.type} a book`} 
-            {post.circle ? ` in ${post.circle.name}` : ''}
-            {' · '} 
-            {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'some time'} ago
-          </Text>
-        </Stack>
+      <Group justify="space-between" mb="md" align="flex-start" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.user?.id}`)}>
+        <Group wrap="nowrap">
+          <Avatar color="slate" radius="xl" src={post.user?.avatarUrl}>{post.user?.name?.charAt(0) || 'U'}</Avatar>
+          <Stack gap={0}>
+            <Text fw={600}>{post.user?.name || 'Unknown User'}</Text>
+            <Text size="xs" c="muted">
+              {post.type === 'text' ? 'Posted an update' : post.type === 'review' ? 'Wrote a review' : `${post.type} a book`} 
+              {post.circle ? ` in ${post.circle.name}` : ''}
+              {' · '} 
+              {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'some time'} ago
+            </Text>
+          </Stack>
+        </Group>
+        {user?.id === post.user?.id && (
+          <ActionIcon color="red" variant="subtle" onClick={handleDeletePost}>
+            <IconTrash size={18} />
+          </ActionIcon>
+        )}
       </Group>
       
       {post.content && (

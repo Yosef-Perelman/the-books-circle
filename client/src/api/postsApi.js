@@ -21,5 +21,10 @@ export const postsApi = {
       method: 'POST',
       body: postData
     });
+  },
+  deletePost: async (postId) => {
+    return await apiClient(`/posts/${postId}`, {
+      method: 'DELETE'
+    });
   }
 };

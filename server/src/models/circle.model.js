@@ -22,6 +22,22 @@ export async function isMember(circleId, userId) {
   return !!data;
 }
 
+export async function getOrCreateGlobalCircle(creatorId) {
+  const { data } = await supabase.from('circles').select('id').eq('name', 'Global').maybeSingle();
+  if (data) return data.id;
+  
+  // Create it
+  const inviteCode = 'GLOBAL';
+  const { data: newCircle, error } = await supabase
+    .from('circles')
+    .insert({ name: 'Global', invite_code: inviteCode, creator_id: creatorId })
+    .select('id')
+    .single();
+    
+  if (error) throw error;
+  return newCircle.id;
+}
+
 export async function findByUser(userId) {
   const { data: memberships, error: membershipsError } = await supabase
     .from('circle_members')

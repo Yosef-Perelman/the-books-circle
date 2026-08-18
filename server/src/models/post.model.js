@@ -24,6 +24,19 @@ export async function createPost({ circleId, userId, type, content = null, userB
   return mapPost(data);
 }
 
+export async function deletePost(postId, userId) {
+  const { data, error } = await supabase
+    .from('feed_posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function searchReviews(bookTitleQuery) {
   // First, find books matching the title
   const { data: books, error: booksError } = await supabase
@@ -145,15 +158,16 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
   if (circleId !== 'global') {
     query = query.eq('circle_id', circleId);
   } else {
-    // For global feed, get all circles the user is in
+    // For global feed, get all circles the user is in + the real Global circle
     const circles = await CircleModel.findByUser(currentUserId);
     const circleIds = circles.map(c => c.id);
-    if (circleIds.length > 0) {
-      query = query.in('circle_id', circleIds);
-    } else {
-      // User is not in any circles, return empty feed
-      return [];
+    const globalCircleId = await CircleModel.getOrCreateGlobalCircle(currentUserId);
+    
+    if (!circleIds.includes(globalCircleId)) {
+      circleIds.push(globalCircleId);
     }
+    
+    query = query.in('circle_id', circleIds);
   }
 
   const { data, error } = await query
