@@ -1,0 +1,44 @@
+2026-08-18T12:33:25.193Z ReferenceError: CircleModel is not defined
+    at file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/post.controller.js:99:28
+    at file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/utils/asyncHandler.js:2:19
+    at Layer.handleRequest (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/route.js:117:3)
+    at handle (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/layer.js:152:17)
+    at /home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:295:15
+    at processParams (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:582:12)
+    at next (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:291:5)
+2026-08-18T12:34:00.748Z ReferenceError: CircleModel is not defined
+    at file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/post.controller.js:99:28
+    at file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/utils/asyncHandler.js:2:19
+    at Layer.handleRequest (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/route.js:117:3)
+    at handle (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/lib/layer.js:152:17)
+    at /home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:295:15
+    at processParams (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:582:12)
+    at next (/home/daniel2026/Documents/Projects/the-books-circle/server/node_modules/router/index.js:291:5)
+2026-08-18T12:35:55.985Z Error: You already have this book on your shelf.
+    at Module.addBook (file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/services/userBook.service.js:29:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/post.controller.js:61:23
+2026-08-18T12:43:22.230Z Error
+    at getExploreBooks (file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/integrations/googleBooks.js:82:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/book.controller.js:19:16
+2026-08-18T12:43:43.236Z Error
+    at searchAuthors (file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/integrations/googleBooks.js:153:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/book.controller.js:34:19
+2026-08-18T12:48:15.829Z Error
+    at getExploreBooks (file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/integrations/googleBooks.js:82:11)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at runNextTicks (node:internal/process/task_queues:69:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/book.controller.js:19:16
+2026-08-18T12:52:06.253Z Error
+    at searchAuthors (file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/integrations/googleBooks.js:153:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///home/daniel2026/Documents/Projects/the-books-circle/server/src/controllers/book.controller.js:34:19

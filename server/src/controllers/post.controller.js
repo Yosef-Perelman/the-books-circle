@@ -1,5 +1,6 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as PostModel from '../models/post.model.js';
+import * as CircleModel from '../models/circle.model.js';
 import * as UserBookService from '../services/userBook.service.js';
 import { STATUS, SOURCE } from '../utils/constants.js';
 
@@ -95,8 +96,11 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
       userBookId: finalUserBookId
     });
   } else {
-    // Create post globally for all user's circles
-    await PostModel.createPostForAllCircles({
+    // Get or create the real Global circle ID
+    const globalCircleId = await CircleModel.getOrCreateGlobalCircle(userId);
+    
+    await PostModel.createPost({
+      circleId: globalCircleId,
       userId,
       type,
       content: content ? content.trim() : null,
@@ -105,4 +109,11 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ data: { success: true } });
+});
+
+export const deletePostCtrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  await PostModel.deletePost(id, userId);
+  res.json({ data: { success: true } });
 });

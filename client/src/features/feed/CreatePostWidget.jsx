@@ -25,7 +25,8 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
         content: content.trim(),
         userBookId: selectedBook?.userBookId,
         book: selectedBook?.userBookId ? null : selectedBook?.bookDetails,
-        rating: selectedBook && rating > 0 ? rating : null
+        rating: selectedBook && rating > 0 ? rating : null,
+        circleId: activeCircle?.id
       };
       await postsApi.createPost(payload);
       setContent('');

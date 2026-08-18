@@ -45,7 +45,7 @@ export default function Layout() {
 
             <Group gap="xl">
               <TextInput 
-                placeholder="Search..."
+                placeholder="Search books, authors, ISBN..."
                 radius="xl"
                 size="sm"
                 value={searchQuery}

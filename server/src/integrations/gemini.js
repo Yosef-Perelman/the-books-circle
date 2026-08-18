@@ -81,9 +81,9 @@ Return only the article text.`;
     const result = await Promise.race([
       textModel.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 1500 }
+        generationConfig: { temperature: 0.8, maxOutputTokens: 4000 }
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 20000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 45000))
     ]);
 
     const text = result.response.text().trim().replace(/^#+.*/gm, '').trim();
