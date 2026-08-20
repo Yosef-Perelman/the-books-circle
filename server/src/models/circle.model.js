@@ -22,22 +22,6 @@ export async function isMember(circleId, userId) {
   return !!data;
 }
 
-export async function getOrCreateGlobalCircle(creatorId) {
-  const { data } = await supabase.from('circles').select('id').eq('name', 'Global').maybeSingle();
-  if (data) return data.id;
-  
-  // Create it
-  const inviteCode = 'GLOBAL';
-  const { data: newCircle, error } = await supabase
-    .from('circles')
-    .insert({ name: 'Global', invite_code: inviteCode, creator_id: creatorId })
-    .select('id')
-    .single();
-    
-  if (error) throw error;
-  return newCircle.id;
-}
-
 export async function findByUser(userId) {
   const { data: memberships, error: membershipsError } = await supabase
     .from('circle_members')
@@ -211,6 +195,8 @@ export async function getRecommendedCircles(userId) {
   
   const { data: circles, error } = await query;
   if (error) throw error;
-  
-  return circles.map(c => mapCircle(c, 0)); // Return approx info
+
+  // Recommended to non-members by design (AI discovery) — never include the
+  // invite code here, or a chat reply could hand a stranger a private circle's key.
+  return circles.map(c => ({ id: c.id, name: c.name, createdAt: c.created_at }));
 }

@@ -16,8 +16,8 @@ export const circlesApi = {
   leaveCircle: async (id) => {
     return await apiClient(`/circles/${id}/leave`, { method: 'DELETE' });
   },
-  getLeaderboard: async (circleId) => {
-    return await apiClient(`/circles/${circleId}/leaderboard`);
+  getLeaderboard: async (circleId, period = 'month') => {
+    return await apiClient(`/circles/${circleId}/leaderboard?period=${period}`);
   },
   getCircleById: async (id) => {
     return await apiClient(`/circles/${id}`);

@@ -8,18 +8,10 @@ export const requireAuth = async (req, res, next) => {
       throw new ApiError(401, 'UNAUTHENTICATED', 'You need to be signed in.');
     }
     const token = authHeader.split(' ')[1];
-    
-    // TEMPORARY BACKDOOR FOR BROWSER SUBAGENT
-    if (!token || token === 'dummy-token') {
-      req.user = {
-        id: '15ec8a50-286d-4954-b9ac-beba3a0086ea',
-        email: 'yanovslo1@gmail.com',
-        displayName: 'daniel yanovsky',
-        avatarUrl: null
-      };
-      return next();
+    if (!token) {
+      throw new ApiError(401, 'UNAUTHENTICATED', 'You need to be signed in.');
     }
-    
+
     // Validate token with Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
     

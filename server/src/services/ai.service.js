@@ -119,8 +119,7 @@ async function handleToolCall(functionCall, userId) {
         return { result: books };
       }
       case 'get_circle_activity': {
-        // Fetch global feed which includes all circle activity for this user
-        const feed = await PostModel.getFeed('global', userId, 0, 15);
+        const feed = await PostModel.getFeedAcrossCircles(userId, 0, 15);
         return { result: feed };
       }
       case 'add_book_to_list': {

@@ -1,10 +1,23 @@
-import { AppShell, Group, Title, Avatar, Text, UnstyledButton, Box, Button, TextInput, Burger, Drawer, Stack } from '@mantine/core';
+import { AppShell, Group, Title, Avatar, Text, UnstyledButton, Box, Button, TextInput, Burger, Drawer, Stack, Loader } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { IconSearch } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 import { useAuthStore } from '../stores/authStore';
 import AddBookModal from '../features/books/AddBookModal';
+import { palette } from '../theme';
+
+// Exact match for Home (it's also the fallback for '/'); prefix match for
+// everything else so nested routes like /profile/:id or /book/:id still
+// mark their parent nav item active.
+const NAV_ITEMS = [
+  { label: 'Home', path: '/feed', exact: true },
+  { label: 'Explore', path: '/explore' },
+  { label: 'Profile', path: '/profile' },
+  { label: 'Leaderboard', path: '/leaderboard' },
+  { label: 'AI Chat', path: '/chat' }
+];
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -12,16 +25,27 @@ export default function Layout() {
   const location = useLocation();
   const [addBookOpened, setAddBookOpened] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  const getNavColor = (path) => location.pathname === path ? 'terracotta' : 'muted';
+  const isActive = (path, exact) =>
+    exact ? location.pathname === path : location.pathname.startsWith(path);
+  const getNavColor = (path, exact) => (isActive(path, exact) ? 'terracotta' : palette.muted);
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchQuery.trim().length > 0) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    await logout();
+    setLoggingOut(false);
+    notifications.show({ color: 'green', message: 'Signed out.' });
+    navigate('/');
   };
 
   return (
@@ -57,26 +81,26 @@ export default function Layout() {
               <Button radius="xl" color="terracotta" onClick={() => setAddBookOpened(true)} visibleFrom="sm">
                 Add a Book
               </Button>
-              <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate('/profile')}>
-                <Avatar color="forest" radius="xl" size="sm">
+              <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate('/profile')} visibleFrom="sm">
+                <Avatar color="forest" radius="xl" size="sm" src={user?.avatarUrl}>
                   {user?.displayName?.charAt(0).toUpperCase() || 'Y'}
                 </Avatar>
+                <Text fw={600} size="sm" c={palette.ink}>{user?.displayName}</Text>
               </Group>
+              <Avatar color="forest" radius="xl" size="sm" src={user?.avatarUrl} hiddenFrom="sm" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+                {user?.displayName?.charAt(0).toUpperCase() || 'Y'}
+              </Avatar>
               <Group gap="xl" visibleFrom="sm">
-                <UnstyledButton onClick={() => navigate('/explore')}>
-                  <Text fw={600} size="md" c={getNavColor('/explore')}>Explore</Text>
-                </UnstyledButton>
-                <UnstyledButton onClick={() => navigate('/profile')}>
-                  <Text fw={600} size="md" c={getNavColor('/profile')}>Profile</Text>
-                </UnstyledButton>
-                <UnstyledButton onClick={() => navigate('/leaderboard')}>
-                  <Text fw={600} size="md" c={getNavColor('/leaderboard')}>Leaderboard</Text>
-                </UnstyledButton>
-                <UnstyledButton onClick={() => navigate('/chat')}>
-                  <Text fw={600} size="md" c={getNavColor('/chat')}>AI Chat</Text>
-                </UnstyledButton>
-                <UnstyledButton onClick={() => { logout(); navigate('/'); }}>
-                  <Text fw={500} size="md" c="muted">Logout</Text>
+                {NAV_ITEMS.map(({ label, path, exact }) => (
+                  <UnstyledButton key={path} onClick={() => navigate(path)}>
+                    <Text fw={600} size="md" c={getNavColor(path, exact)}>{label}</Text>
+                  </UnstyledButton>
+                ))}
+                <UnstyledButton onClick={handleLogout} disabled={loggingOut}>
+                  <Group gap={6}>
+                    {loggingOut && <Loader size={12} color="terracotta" />}
+                    <Text fw={500} size="md" c={palette.muted}>Logout</Text>
+                  </Group>
                 </UnstyledButton>
               </Group>
             </Group>
@@ -85,23 +109,22 @@ export default function Layout() {
 
         <Drawer opened={drawerOpened} onClose={closeDrawer} size="xs" title="Menu" padding="xl">
           <Stack gap="lg">
+            <Group gap="sm">
+              <Avatar color="forest" radius="xl" size="sm" src={user?.avatarUrl}>
+                {user?.displayName?.charAt(0).toUpperCase() || 'Y'}
+              </Avatar>
+              <Text fw={600} size="sm" c={palette.ink}>{user?.displayName}</Text>
+            </Group>
             <Button radius="xl" color="terracotta" onClick={() => { setAddBookOpened(true); closeDrawer(); }} fullWidth>
               Add a Book
             </Button>
-            <UnstyledButton onClick={() => { navigate('/explore'); closeDrawer(); }}>
-              <Text fw={600} size="lg" c={getNavColor('/explore')}>Explore</Text>
-            </UnstyledButton>
-            <UnstyledButton onClick={() => { navigate('/profile'); closeDrawer(); }}>
-              <Text fw={600} size="lg" c={getNavColor('/profile')}>Profile</Text>
-            </UnstyledButton>
-            <UnstyledButton onClick={() => { navigate('/leaderboard'); closeDrawer(); }}>
-              <Text fw={600} size="lg" c={getNavColor('/leaderboard')}>Leaderboard</Text>
-            </UnstyledButton>
-            <UnstyledButton onClick={() => { navigate('/chat'); closeDrawer(); }}>
-              <Text fw={600} size="lg" c={getNavColor('/chat')}>AI Chat</Text>
-            </UnstyledButton>
-            <UnstyledButton onClick={() => { logout(); navigate('/'); closeDrawer(); }}>
-              <Text fw={500} size="lg" c="muted">Logout</Text>
+            {NAV_ITEMS.map(({ label, path, exact }) => (
+              <UnstyledButton key={path} onClick={() => { navigate(path); closeDrawer(); }}>
+                <Text fw={600} size="lg" c={getNavColor(path, exact)}>{label}</Text>
+              </UnstyledButton>
+            ))}
+            <UnstyledButton onClick={() => { handleLogout(); closeDrawer(); }} disabled={loggingOut}>
+              <Text fw={500} size="lg" c={palette.muted}>Logout</Text>
             </UnstyledButton>
           </Stack>
         </Drawer>

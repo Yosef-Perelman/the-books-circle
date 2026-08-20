@@ -112,10 +112,7 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
               </Group>
               
               <Group gap="sm" align="center">
-                {activeCircle?.id === 'global' && (
-                  <Text size="xs" c="dimmed">Posting to all your circles</Text>
-                )}
-                <Button 
+                <Button
                   color="terracotta" 
                   radius="xl"
                   loading={loading}

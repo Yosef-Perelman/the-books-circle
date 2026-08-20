@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
 import { Box, Group, Title, Text, Avatar, Stack, Button, Loader, Center, Container } from '@mantine/core';
@@ -8,17 +8,20 @@ import { postsApi } from '../../api/postsApi';
 import { useAuthStore } from '../../stores/authStore';
 import CreatePostWidget from './CreatePostWidget';
 import PostCard from './PostCard';
-import { IconLogout, IconUserPlus } from '@tabler/icons-react';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { avatarColorFor } from '../../lib/avatarColor';
+import { IconLogout } from '@tabler/icons-react';
 
 export default function CirclePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { myCircleIds, refreshMyCircles } = useAuthStore();
-  
+  const { refreshMyCircles } = useAuthStore();
+
   const [circle, setCircle] = useState(null);
   const [members, setMembers] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaveConfirmOpened, setLeaveConfirmOpened] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const [loadingMore, setLoadingMore] = useState(false);
@@ -30,14 +33,14 @@ export default function CirclePage() {
     threshold: 0.1,
   });
 
-  const isMember = myCircleIds.some(cId => String(cId) === String(id));
-
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
     setOffset(0);
     setHasMore(true);
 
+    // These all 404 if the caller isn't a member — circles are private.
+    // Landing here without membership bounces back to /feed below.
     Promise.all([
       circlesApi.getCircleById(id),
       circlesApi.getMembers(id),
@@ -56,7 +59,7 @@ export default function CirclePage() {
     }).catch(err => {
       console.error('Failed to fetch circle data:', err);
       if (isMounted) {
-        notifications.show({ title: 'Error', message: 'Failed to load circle', color: 'red' });
+        notifications.show({ title: 'Error', message: "You don't have access to that circle.", color: 'red' });
         navigate('/feed');
       }
     }).finally(() => {
@@ -87,33 +90,19 @@ export default function CirclePage() {
     }
   }, [entry?.isIntersecting, hasMore, loadingMore, loading, id, offset]);
 
-  const handleJoinCircle = async () => {
-    setActionLoading(true);
-    try {
-      await circlesApi.joinCircleById(id);
-      await refreshMyCircles();
-      const newMembers = await circlesApi.getMembers(id);
-      setMembers(newMembers);
-      notifications.show({ title: 'Success', message: `Joined ${circle.name}!`, color: 'green' });
-    } catch (err) {
-      console.error(err);
-      notifications.show({ title: 'Error', message: err.message || 'Failed to join circle', color: 'red' });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleLeaveCircle = async () => {
-    if (!window.confirm(`Are you sure you want to leave ${circle.name}?`)) return;
+    setActionLoading(true);
     try {
       await circlesApi.leaveCircle(id);
       await refreshMyCircles();
-      const newMembers = await circlesApi.getMembers(id);
-      setMembers(newMembers);
       notifications.show({ title: 'Success', message: `Left ${circle.name}`, color: 'green' });
+      navigate('/feed');
     } catch (err) {
       console.error(err);
       notifications.show({ title: 'Error', message: 'Failed to leave circle', color: 'red' });
+    } finally {
+      setActionLoading(false);
+      setLeaveConfirmOpened(false);
     }
   };
 
@@ -132,46 +121,30 @@ export default function CirclePage() {
       {/* Center Feed */}
       <Box style={{ flex: 1 }} bg="surface" p={40}>
         <Container size="sm" mx="auto" p={0}>
-          
+
           <Box mb="xl">
             <Title order={2} style={{ fontFamily: 'Newsreader, serif', color: '#3A322A' }}>{circle.name}</Title>
             <Text c="dimmed">{circle.memberCount} members</Text>
           </Box>
 
-          {!isMember ? (
-            <Box bg="cream" p="xl" mb="xl" style={{ borderRadius: '12px', border: '1px solid #EADFC9', textAlign: 'center' }}>
-              <Text fw={600} size="lg" mb="sm">Join the Conversation</Text>
-              <Text c="dimmed" mb="md">You need to be a member of this circle to post, react, or comment.</Text>
-              <Button 
-                color="terracotta" 
-                radius="xl" 
-                leftSection={<IconUserPlus size={18} />} 
-                onClick={handleJoinCircle} 
-                loading={actionLoading}
-              >
-                Join Circle
-              </Button>
-            </Box>
-          ) : (
-            <CreatePostWidget 
-              onPostCreated={() => {
-                setOffset(0);
-                setHasMore(true);
-                postsApi.getPosts(id, 0, 10).then(setPosts);
-              }} 
-              activeCircle={circle} 
-            />
-          )}
+          <CreatePostWidget
+            onPostCreated={() => {
+              setOffset(0);
+              setHasMore(true);
+              postsApi.getPosts(id, 0, 10).then(setPosts);
+            }}
+            activeCircle={circle}
+          />
 
           <Stack gap="lg">
             {posts.length === 0 && (
               <Text ta="center" c="dimmed" mt="xl">No recent activity.</Text>
             )}
-            
+
             {posts.map(post => (
-              <PostCard 
-                key={post.id} 
-                post={post} 
+              <PostCard
+                key={post.id}
+                post={post}
                 onReactionUpdate={(postId, increment) => {
                   setPosts(current => current.map(p => {
                     if (p.id === postId) {
@@ -206,11 +179,13 @@ export default function CirclePage() {
       {/* Right Sidebar: Members */}
       <Box w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
         <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLE MEMBERS</Text>
-        
+
         <Stack gap="md">
           {members.map(m => (
             <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
-              <Avatar color="terracotta" radius="xl" size="md" src={m.avatarUrl}>{m.name?.charAt(0) || 'M'}</Avatar>
+              <Avatar radius="xl" size="md" src={m.avatarUrl} style={{ backgroundColor: avatarColorFor(m.id), color: 'white' }}>
+                {m.name?.charAt(0) || 'M'}
+              </Avatar>
               <Stack gap={0}>
                 <Text fw={600} size="sm">{m.name}</Text>
                 <Text size="xs" c="muted">in {circle.name}</Text>
@@ -218,27 +193,34 @@ export default function CirclePage() {
             </Group>
           ))}
         </Stack>
-        
-        {isMember && (
-          <>
-            <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
-              {members.length} members · code {circle.inviteCode || 'N/A'}
-            </Text>
 
-            <Button 
-              variant="subtle" 
-              color="red" 
-              fullWidth 
-              mt="md" 
-              size="xs"
-              leftSection={<IconLogout size={14} />}
-              onClick={handleLeaveCircle}
-            >
-              Leave Circle
-            </Button>
-          </>
-        )}
+        <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
+          {members.length} members · code {circle.inviteCode || 'N/A'}
+        </Text>
+
+        <Button
+          variant="subtle"
+          color="red"
+          fullWidth
+          mt="md"
+          size="xs"
+          leftSection={<IconLogout size={14} />}
+          onClick={() => setLeaveConfirmOpened(true)}
+        >
+          Leave Circle
+        </Button>
       </Box>
+
+      <ConfirmDialog
+        opened={leaveConfirmOpened}
+        onClose={() => setLeaveConfirmOpened(false)}
+        onConfirm={handleLeaveCircle}
+        title="Leave circle?"
+        message={`Are you sure you want to leave ${circle.name}?`}
+        confirmLabel="Leave"
+        danger
+        loading={actionLoading}
+      />
     </Group>
   );
 }

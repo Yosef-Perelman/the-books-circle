@@ -1,5 +1,6 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as CircleModel from '../models/circle.model.js';
+import * as LeaderboardService from '../services/leaderboard.service.js';
 
 export const getMyCirclesCtrl = asyncHandler(async (req, res) => {
   const userId = req.user.id;
@@ -10,17 +11,9 @@ export const getMyCirclesCtrl = asyncHandler(async (req, res) => {
 
 export const getLeaderboardCtrl = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const members = await CircleModel.getMembers(id);
-  
-  // Create a pseudo-random but deterministic leaderboard based on real members for MVP
-  const mappedMembers = members.map((m, index) => ({
-    id: m.id,
-    name: m.name,
-    avatarUrl: m.avatarUrl,
-    score: (members.length - index) * 5 + 2 // Fake score
-  })).sort((a, b) => b.score - a.score);
-  
-  res.json({ data: mappedMembers });
+  const period = req.query.period === 'all' ? 'all' : 'month';
+  const leaderboard = await LeaderboardService.getLeaderboard(id, period);
+  res.json({ data: leaderboard });
 });
 
 export const getMembersCtrl = asyncHandler(async (req, res) => {

@@ -12,7 +12,40 @@ function parseJsonLoose(text) {
 }
 
 export async function readBookCover(imageBuffer, mimeType) {
-  // Not implemented yet
+  const prompt = `Look at this photo of a book cover. Identify the book's title and author.
+
+Respond with a JSON object only, no markdown fences: {"title": "...", "author": "..."}
+If the photo isn't a book cover, or you can't confidently read the title, respond with {"title": null, "author": null}.`;
+
+  try {
+    const result = await Promise.race([
+      visionModel.generateContent({
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType, data: imageBuffer.toString('base64') } }
+          ]
+        }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 200 }
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 20000))
+    ]);
+
+    const text = result.response.text();
+    const parsed = parseJsonLoose(text);
+
+    if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
+      return {
+        title: parsed.title.trim(),
+        author: typeof parsed.author === 'string' && parsed.author.trim() ? parsed.author.trim() : null
+      };
+    }
+    return null;
+  } catch (err) {
+    console.error('readBookCover error:', err);
+    return null;
+  }
 }
 
 export async function generateInterviewQuestions({ title, author, genre }) {

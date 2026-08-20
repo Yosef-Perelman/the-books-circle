@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Modal, Button, Tabs, TextInput, Stack, NumberInput, Text, Group, Loader, ScrollArea, Box, ActionIcon, Autocomplete, SegmentedControl } from '@mantine/core';
+import { Modal, Button, Tabs, TextInput, Stack, NumberInput, Text, Group, Loader, ScrollArea, Box, ActionIcon, Autocomplete, SegmentedControl, FileButton, Image } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconCheck } from '@tabler/icons-react';
+import { IconPlus, IconCheck, IconCamera } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
 import BookCover from '../../components/BookCover';
 
@@ -23,6 +23,16 @@ export default function AddBookModal({ opened, onClose }) {
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [isAutocompleteLoading, setIsAutocompleteLoading] = useState(false);
   const [debouncedManualQuery] = useDebouncedValue(manualData.title, 500);
+
+  // Scan tab state
+  const [scanPreview, setScanPreview] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (scanPreview) URL.revokeObjectURL(scanPreview);
+    };
+  }, [scanPreview]);
 
   useEffect(() => {
     if (activeTab !== 'manual' || !debouncedManualQuery || debouncedManualQuery.length < 3) {
@@ -93,6 +103,37 @@ export default function AddBookModal({ opened, onClose }) {
     await handleAdd(book);
   };
 
+  const handleScanFile = async (file) => {
+    if (!file) return;
+    setScanPreview(URL.createObjectURL(file));
+    setIsScanning(true);
+    try {
+      const { candidate } = await booksApi.scanBookCover(file);
+      if (!candidate) {
+        notifications.show({
+          title: 'Could not read the cover',
+          message: "We couldn't identify that book. Fill in the details by hand instead.",
+          color: 'yellow'
+        });
+        setManualData((prev) => ({ ...prev, title: '' }));
+        setActiveTab('manual');
+        return;
+      }
+      setManualData({
+        title: candidate.title || '',
+        author: candidate.author || '',
+        genre: candidate.genre || '',
+        pageCount: candidate.pageCount || '',
+        coverUrl: candidate.coverUrl || ''
+      });
+      setActiveTab('manual');
+    } catch (err) {
+      notifications.show({ title: 'Error', message: err.message || 'Failed to scan the cover', color: 'red' });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   return (
     <Modal opened={opened} onClose={onClose} title="Add a book" size="md">
       <SegmentedControl
@@ -117,8 +158,24 @@ export default function AddBookModal({ opened, onClose }) {
 
         <Tabs.Panel value="scan" pt="xl">
           <Stack align="center" gap="md" py="xl">
-            <Text c="muted">Upload or take a photo of the book cover.</Text>
-            <Button color="terracotta" radius="xl">Select Photo</Button>
+            {scanPreview && (
+              <Image src={scanPreview} h={160} w="auto" fit="contain" radius="md" />
+            )}
+            {isScanning ? (
+              <Group gap="xs">
+                <Loader size="sm" color="terracotta" />
+                <Text c="muted">Reading the cover…</Text>
+              </Group>
+            ) : (
+              <Text c="muted">Upload or take a photo of the book cover.</Text>
+            )}
+            <FileButton onChange={handleScanFile} accept="image/*">
+              {(props) => (
+                <Button color="terracotta" radius="xl" leftSection={<IconCamera size={16} />} loading={isScanning} {...props}>
+                  {scanPreview ? 'Try another photo' : 'Select photo'}
+                </Button>
+              )}
+            </FileButton>
           </Stack>
         </Tabs.Panel>
 

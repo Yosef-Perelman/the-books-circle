@@ -7,6 +7,8 @@ import { notifications } from '@mantine/notifications';
 import { postsApi } from '../../api/postsApi';
 import { circlesApi } from '../../api/circlesApi';
 import { useAuthStore } from '../../stores/authStore';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { avatarColorFor } from '../../lib/avatarColor';
 
 export default function PostCard({ post, onReactionUpdate = () => {}, onCommentAdded = () => {}, onPostDeleted = () => {} }) {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [joinModalOpened, setJoinModalOpened] = useState(false);
+  const [deleteConfirmOpened, setDeleteConfirmOpened] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { user, myCircleIds, refreshMyCircles } = useAuthStore();
 
@@ -26,15 +29,17 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
     return false;
   };
 
-  const handleDeletePost = async (e) => {
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+  const handleDeletePost = async () => {
+    setActionLoading(true);
     try {
       await postsApi.deletePost(post.id);
       onPostDeleted(post.id);
       notifications.show({ title: 'Success', message: 'Post deleted', color: 'green' });
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Failed to delete post', color: 'red' });
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirmOpened(false);
     }
   };
 
@@ -84,19 +89,21 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
     <Card radius="xl" p="xl" withBorder style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
       <Group justify="space-between" mb="md" align="flex-start" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.user?.id}`)}>
         <Group wrap="nowrap">
-          <Avatar color="slate" radius="xl" src={post.user?.avatarUrl}>{post.user?.name?.charAt(0) || 'U'}</Avatar>
+          <Avatar radius="xl" src={post.user?.avatarUrl} style={{ backgroundColor: avatarColorFor(post.user?.id), color: 'white' }}>
+            {post.user?.name?.charAt(0) || 'U'}
+          </Avatar>
           <Stack gap={0}>
             <Text fw={600}>{post.user?.name || 'Unknown User'}</Text>
             <Text size="xs" c="muted">
-              {post.type === 'text' ? 'Posted an update' : post.type === 'review' ? 'Wrote a review' : `${post.type} a book`} 
+              {post.type === 'text' ? 'Posted an update' : post.type === 'review' ? 'Wrote a review' : `${post.type} a book`}
               {post.circle ? ` in ${post.circle.name}` : ''}
-              {' · '} 
+              {' · '}
               {post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'some time'} ago
             </Text>
           </Stack>
         </Group>
         {user?.id === post.user?.id && (
-          <ActionIcon color="red" variant="subtle" onClick={handleDeletePost}>
+          <ActionIcon color="red" variant="subtle" onClick={(e) => { e.stopPropagation(); setDeleteConfirmOpened(true); }}>
             <IconTrash size={18} />
           </ActionIcon>
         )}
@@ -154,7 +161,9 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
             <Stack gap="sm">
               {comments.map(c => (
                 <Group key={c.id} align="flex-start" wrap="nowrap">
-                  <Avatar size="sm" radius="xl" src={c.user?.avatarUrl}>{c.user?.name?.charAt(0)}</Avatar>
+                  <Avatar size="sm" radius="xl" src={c.user?.avatarUrl} style={{ backgroundColor: avatarColorFor(c.user?.id), color: 'white' }}>
+                    {c.user?.name?.charAt(0)}
+                  </Avatar>
                   <Box bg="surface" p="xs" style={{ borderRadius: '12px', flex: 1 }}>
                     <Text size="sm" fw={600}>{c.user?.name}</Text>
                     <Text size="sm">{c.content}</Text>
@@ -204,6 +213,17 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
           Join Circle
         </Button>
       </Modal>
+
+      <ConfirmDialog
+        opened={deleteConfirmOpened}
+        onClose={() => setDeleteConfirmOpened(false)}
+        onConfirm={handleDeletePost}
+        title="Delete this post?"
+        message="Are you sure you want to delete this post?"
+        confirmLabel="Delete"
+        danger
+        loading={actionLoading}
+      />
     </Card>
   );
 }
