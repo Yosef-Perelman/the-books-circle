@@ -183,7 +183,7 @@ export default function CirclePage() {
         <Stack gap="md">
           {members.map(m => (
             <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
-              <Avatar radius="xl" size="md" src={m.avatarUrl} style={{ backgroundColor: avatarColorFor(m.id), color: 'white' }}>
+              <Avatar radius="xl" size="md" src={m.avatarUrl} color={avatarColorFor(m.id)} variant="filled">
                 {m.name?.charAt(0) || 'M'}
               </Avatar>
               <Stack gap={0}>

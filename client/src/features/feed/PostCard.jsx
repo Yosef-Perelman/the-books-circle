@@ -89,7 +89,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
     <Card radius="xl" p="xl" withBorder style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
       <Group justify="space-between" mb="md" align="flex-start" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.user?.id}`)}>
         <Group wrap="nowrap">
-          <Avatar radius="xl" src={post.user?.avatarUrl} style={{ backgroundColor: avatarColorFor(post.user?.id), color: 'white' }}>
+          <Avatar radius="xl" src={post.user?.avatarUrl} color={avatarColorFor(post.user?.id)} variant="filled">
             {post.user?.name?.charAt(0) || 'U'}
           </Avatar>
           <Stack gap={0}>
@@ -161,7 +161,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
             <Stack gap="sm">
               {comments.map(c => (
                 <Group key={c.id} align="flex-start" wrap="nowrap">
-                  <Avatar size="sm" radius="xl" src={c.user?.avatarUrl} style={{ backgroundColor: avatarColorFor(c.user?.id), color: 'white' }}>
+                  <Avatar size="sm" radius="xl" src={c.user?.avatarUrl} color={avatarColorFor(c.user?.id)} variant="filled">
                     {c.user?.name?.charAt(0)}
                   </Avatar>
                   <Box bg="surface" p="xs" style={{ borderRadius: '12px', flex: 1 }}>

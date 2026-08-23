@@ -163,7 +163,7 @@ function LeaderboardCard({ title, description, entries, memberCount, onRowClick 
                 <Box w={28} h={28} style={{ borderRadius: '50%', backgroundColor: getRankColor(entry.rank), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
                   {entry.rank}
                 </Box>
-                <Avatar size="md" radius="xl" src={entry.user.avatarUrl} style={{ backgroundColor: avatarColorFor(entry.user.id), color: 'white' }}>
+                <Avatar size="md" radius="xl" src={entry.user.avatarUrl} color={avatarColorFor(entry.user.id)} variant="filled">
                   {entry.user.name?.charAt(0)?.toUpperCase() || 'U'}
                 </Avatar>
                 <Text size="md" fw={600} c={palette.ink}>{entry.user.name}</Text>
