@@ -78,19 +78,24 @@ async function runSeed() {
     }
   }
 
-  // Get all user IDs (including previously created ones)
-  const { data: allUsers } = await supabase.from('users').select('id');
+  // Get seeded user IDs only — never sweep up real Google accounts into fake circles.
+  const { data: allUsers } = await supabase.from('users').select('id, email').like('email', '%@example.com');
   const userIds = allUsers.map(u => u.id);
 
   if (userIds.length === 0) {
-    console.error('No users found. Aborting.');
+    console.error('No seeded users found. Aborting.');
     return;
   }
 
-  // 2. Create Circles
+  // 2. Create Circles (find-then-insert so re-running the seed doesn't duplicate)
   console.log('Creating circles...');
   const circleIds = [];
   for (const cName of CIRCLE_NAMES) {
+    const { data: existing } = await supabase.from('circles').select('id').eq('name', cName).maybeSingle();
+    if (existing) {
+      circleIds.push(existing.id);
+      continue;
+    }
     const { data: circle, error: circleError } = await supabase.from('circles').insert({
       name: cName,
       creator_id: userIds[0], // First user creates all the test circles
@@ -102,15 +107,14 @@ async function runSeed() {
     if (circle) circleIds.push(circle.id);
   }
 
-  // 3. Add Members to Circles
-  const { data: allCircles } = await supabase.from('circles').select('id');
-  const allCircleIds = allCircles.map(c => c.id);
+  // 3. Add Members to Circles — only the ones this seed run owns, never every circle in the table.
+  const allCircleIds = circleIds;
 
   if (allCircleIds.length === 0) {
     console.error('No circles created. Aborting membership assignment.');
     return;
   }
-  
+
   console.log('Adding members to circles...');
   const memberships = [];
   for (const uId of userIds) {

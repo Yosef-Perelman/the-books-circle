@@ -61,7 +61,7 @@ export default function LeaderboardPage() {
   const activeCircleName = circles.find(c => c.id === activeCircleId)?.name || '';
 
   return (
-    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60}>
+    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60} pb={60}>
       <Container size="md">
 
         {/* Header */}

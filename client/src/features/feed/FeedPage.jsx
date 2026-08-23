@@ -330,7 +330,7 @@ export default function FeedPage() {
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Title order={3} style={{ fontFamily: 'Newsreader, serif' }}>New Circle</Title>}
+        title={<Title order={3} component="span" style={{ fontFamily: 'Newsreader, serif' }}>New Circle</Title>}
         centered
         radius="lg"
       >

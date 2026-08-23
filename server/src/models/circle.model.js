@@ -72,7 +72,7 @@ export async function createCircle(name, creatorUserId) {
   
   const { data: circle, error: circleError } = await supabase
     .from('circles')
-    .insert({ name, invite_code: inviteCode })
+    .insert({ name, invite_code: inviteCode, creator_id: creatorUserId })
     .select()
     .single();
 
