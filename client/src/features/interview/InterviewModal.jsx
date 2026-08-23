@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Modal, Button, Stack, Text, Textarea, Select, Loader, Center, Group } from '@mantine/core';
+import { Modal, Button, Stack, Text, Textarea, Loader, Center, Group } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { booksApi } from '../../api/booksApi';
 import { circlesApi } from '../../api/circlesApi';
-import { postsApi } from '../../api/postsApi';
 
-export default function InterviewModal({ opened, onClose, userBook }) {
+export default function InterviewModal({ opened, onClose, userBook, onPublished = () => {} }) {
   const [step, setStep] = useState('loading-questions'); // loading-questions, q0, q1, q2, loading-review, edit-review
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [myCircles, setMyCircles] = useState([]);
-  const [selectedCircleId, setSelectedCircleId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,9 +27,6 @@ export default function InterviewModal({ opened, onClose, userBook }) {
       ]).then(([qRes, cRes]) => {
         setQuestions(qRes || []);
         setMyCircles(cRes || []);
-        if (cRes && cRes.length > 0) {
-          setSelectedCircleId(cRes[0].id); // default to first circle
-        }
         setStep('q0');
       }).catch(err => {
         console.error(err);
@@ -79,19 +74,11 @@ export default function InterviewModal({ opened, onClose, userBook }) {
   };
 
   const handlePublish = async () => {
-    if (!selectedCircleId) {
-      notifications.show({ title: 'Wait', message: 'Please select a circle to post to', color: 'orange' });
-      return;
-    }
     setIsSubmitting(true);
     try {
-      await postsApi.createPost({
-        circleId: selectedCircleId,
-        content: reviewText,
-        type: 'review',
-        userBookId: userBook.id
-      });
+      await booksApi.publishReview(userBook.id, reviewText);
       notifications.show({ title: 'Success!', message: 'Your review has been published.', color: 'green' });
+      onPublished(userBook.id);
       onClose();
     } catch (err) {
       console.error(err);
@@ -168,13 +155,15 @@ export default function InterviewModal({ opened, onClose, userBook }) {
             onChange={(e) => setReviewText(e.currentTarget.value)}
           />
 
-          <Select
-            label="Post to Circle"
-            data={myCircles.map(c => ({ value: c.id, label: c.name }))}
-            value={selectedCircleId}
-            onChange={setSelectedCircleId}
-            allowDeselect={false}
-          />
+          {myCircles.length > 0 ? (
+            <Text size="sm" c="dimmed">
+              Sharing with {myCircles.length === 1 ? 'your circle' : `all ${myCircles.length} of your circles`}: {myCircles.map(c => c.name).join(', ')}
+            </Text>
+          ) : (
+            <Text size="sm" c="dimmed">
+              You're not in any circles yet — this review will be saved to your shelf but not shared.
+            </Text>
+          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="subtle" color="gray" onClick={onClose} disabled={isSubmitting}>Cancel</Button>

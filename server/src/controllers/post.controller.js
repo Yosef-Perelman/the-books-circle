@@ -3,7 +3,7 @@ import { ApiError } from '../utils/ApiError.js';
 import * as PostModel from '../models/post.model.js';
 import * as CircleModel from '../models/circle.model.js';
 import * as UserBookService from '../services/userBook.service.js';
-import { STATUS, SOURCE } from '../utils/constants.js';
+import { SOURCE } from '../utils/constants.js';
 
 // Posts carry a post id, not a circle id, so requireCircleMember can't sit on
 // these routes directly — resolve the post's circle and check membership by
@@ -95,7 +95,6 @@ export const createPostCtrl = asyncHandler(async (req, res) => {
         const added = await UserBookService.addBook({
           userId,
           bookData: book,
-          status: STATUS.WANT, // Just attach to shelf if not present
           source: SOURCE.MANUAL,
           rating: rating || null
         });

@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Modal, Button, Tabs, TextInput, Stack, NumberInput, Text, Group, Loader, ScrollArea, Box, ActionIcon, Autocomplete, SegmentedControl, FileButton, Image } from '@mantine/core';
+import { Modal, Button, Tabs, TextInput, Stack, NumberInput, Text, Group, Loader, ScrollArea, Box, ActionIcon, Autocomplete, FileButton, Image } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconCheck, IconCamera } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
 import BookCover from '../../components/BookCover';
 
-export default function AddBookModal({ opened, onClose }) {
+export default function AddBookModal({ opened, onClose, onBookAdded = () => {} }) {
   const [activeTab, setActiveTab] = useState('search');
-  const [selectedStatus, setSelectedStatus] = useState('want');
-  
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,10 +78,10 @@ export default function AddBookModal({ opened, onClose }) {
     try {
       await booksApi.addUserBook({
         book,
-        status: selectedStatus,
         source: activeTab === 'manual' ? 'manual' : 'search'
       });
       notifications.show({ title: 'Success', message: `Added ${book.title} to your shelf!`, color: 'teal', icon: <IconCheck /> });
+      onBookAdded();
       onClose(); // close modal on success
     } catch (err) {
       notifications.show({ title: 'Error', message: err.message || 'Failed to add book', color: 'red' });
@@ -136,19 +135,6 @@ export default function AddBookModal({ opened, onClose }) {
 
   return (
     <Modal opened={opened} onClose={onClose} title="Add a book" size="md">
-      <SegmentedControl
-        value={selectedStatus}
-        onChange={setSelectedStatus}
-        data={[
-          { label: 'Want to Read', value: 'want' },
-          { label: 'Reading', value: 'reading' },
-          { label: 'Finished', value: 'finished' }
-        ]}
-        fullWidth
-        color="terracotta"
-        mb="md"
-      />
-      
       <Tabs value={activeTab} onChange={setActiveTab} color="terracotta">
         <Tabs.List>
           <Tabs.Tab value="scan">Scan cover</Tabs.Tab>

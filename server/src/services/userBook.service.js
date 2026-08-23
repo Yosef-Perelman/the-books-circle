@@ -4,7 +4,10 @@ import * as PostModel from '../models/post.model.js';
 import { ApiError } from '../utils/ApiError.js';
 import { STATUS, POST_TYPE, SOURCE } from '../utils/constants.js';
 
-export async function addBook({ userId, bookData, status = STATUS.WANT, source = SOURCE.SEARCH, rating = null }) {
+// Every entry path lands on the shelf as 'want' — no exceptions
+// (docs/features/add-book.md). Reading/finished only happen through the
+// normal status transition, so there is no 'status' parameter to bypass here.
+export async function addBook({ userId, bookData, source = SOURCE.SEARCH, rating = null }) {
   // 1. Resolve or create the catalog book
   const book = await BookModel.findOrCreate(bookData);
 
@@ -14,10 +17,10 @@ export async function addBook({ userId, bookData, status = STATUS.WANT, source =
     .insert({
       user_id: userId,
       book_id: book.id,
-      status: status,
+      status: STATUS.WANT,
       source: source,
-      started_at: status === STATUS.READING ? new Date().toISOString() : null,
-      finished_at: status === STATUS.FINISHED ? new Date().toISOString() : null,
+      started_at: null,
+      finished_at: null,
       rating: rating
     })
     .select()
@@ -53,9 +56,10 @@ export async function updateRating(userBookId, userId, rating) {
 }
 
 export async function updateStatus(userBookId, userId, status) {
+  // 'finished' is rejected by the controller before this runs — the only path
+  // to that status is publishReview(), which posts the review itself.
   const updates = { status };
   if (status === STATUS.READING) updates.started_at = new Date().toISOString();
-  if (status === STATUS.FINISHED) updates.finished_at = new Date().toISOString();
 
   const { error } = await supabase
     .from('user_books')
@@ -64,15 +68,54 @@ export async function updateStatus(userBookId, userId, status) {
     .eq('user_id', userId);
 
   if (error) throw error;
-  
+
   // Create a new post for status change
   await PostModel.createPostForAllCircles({
     userId,
-    type: status === STATUS.READING ? POST_TYPE.STARTED : (status === STATUS.FINISHED ? POST_TYPE.FINISHED : POST_TYPE.ADDED),
+    type: status === STATUS.READING ? POST_TYPE.STARTED : POST_TYPE.ADDED,
     userBookId
   });
 
   return true;
+}
+
+// The only path to a 'finished' status. Posts the review to every circle the
+// user belongs to (same reach as 'added'/'started'), then flips the status —
+// posting first means a failed status flip leaves a visible, recoverable
+// review rather than a silently "finished" book with no announcement.
+export async function publishReview({ userBookId, userId, content }) {
+  const { data: userBook, error: fetchError } = await supabase
+    .from('user_books')
+    .select('id, user_id')
+    .eq('id', userBookId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  if (!userBook || userBook.user_id !== userId) {
+    throw new ApiError(404, 'NOT_FOUND', 'Book not found.');
+  }
+
+  const posts = await PostModel.createPostForAllCircles({
+    userId,
+    type: POST_TYPE.REVIEW,
+    content,
+    userBookId
+  });
+
+  const { error: updateError } = await supabase
+    .from('user_books')
+    .update({ status: STATUS.FINISHED, finished_at: new Date().toISOString() })
+    .eq('id', userBookId)
+    .eq('user_id', userId);
+
+  if (updateError) {
+    // Compensating action: no multi-statement transaction over the Supabase
+    // JS client, so undo the posts rather than leave a review with a stale status.
+    await Promise.all(posts.map((p) => supabase.from('feed_posts').delete().eq('id', p.id)));
+    throw updateError;
+  }
+
+  return { posts };
 }
 
 export async function removeBook(userBookId, userId) {

@@ -59,5 +59,11 @@ export const booksApi = {
       method: 'POST',
       body: { qa }
     });
+  },
+  publishReview: async (userBookId, content) => {
+    return await apiClient(`/user-books/${userBookId}/review`, {
+      method: 'POST',
+      body: { content }
+    });
   }
 };

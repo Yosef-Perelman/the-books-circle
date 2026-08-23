@@ -5,7 +5,6 @@ import * as LeaderboardService from '../services/leaderboard.service.js';
 export const getMyCirclesCtrl = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const circles = await CircleModel.findByUser(userId);
-  console.log('getMyCircles called for user:', userId, 'Found:', circles);
   res.json({ data: circles });
 });
 

@@ -1,7 +1,7 @@
 import { AppShell, Group, Title, Avatar, Text, UnstyledButton, Box, Button, TextInput, Burger, Drawer, Stack, Loader } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useAuthStore } from '../stores/authStore';
@@ -28,6 +28,15 @@ export default function Layout() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Signals to any page under this Outlet that a book was just added, so a
+  // circle feed or the profile shelf can silently refetch. AddBookModal lives
+  // here as AppShell's sibling to the Outlet, not inside any page, so there's
+  // no prop path down to the page that needs to react — this counter plus
+  // Outlet context stands in for one. See docs/client-architecture.md.
+  const [bookActivity, setBookActivity] = useState(0);
+  const notifyBookActivity = useCallback(() => setBookActivity((v) => v + 1), []);
+  const outletContext = useMemo(() => ({ bookActivity, notifyBookActivity }), [bookActivity, notifyBookActivity]);
 
   const isActive = (path, exact) =>
     exact ? location.pathname === path : location.pathname.startsWith(path);
@@ -130,10 +139,10 @@ export default function Layout() {
         </Drawer>
 
         <AppShell.Main>
-          <Outlet />
+          <Outlet context={outletContext} />
         </AppShell.Main>
       </AppShell>
-      <AddBookModal opened={addBookOpened} onClose={() => setAddBookOpened(false)} />
+      <AddBookModal opened={addBookOpened} onClose={() => setAddBookOpened(false)} onBookAdded={notifyBookActivity} />
     </>
   );
 }

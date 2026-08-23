@@ -85,28 +85,32 @@ Collected entirely **client-side**. No round trip per turn — a stateful multi-
 
 Answers are 1–1000 chars, trimmed. Empty answers are dropped from the payload rather than sent as blanks.
 
-## Posting — `POST /api/user-books/:id/review`
+## Posting — two endpoints, generate then publish
 
-The one endpoint that does several things at once. Order matters:
+Unlike the original single-shot design, the built modal has a review-editing step between generation and posting (see "Rules that are easy to get wrong" below), so posting is split across two endpoints:
 
+**`POST /api/user-books/:id/interview/review`** — generation only, nothing written to the database yet.
+```
+requireAuth → Gemini: qa + book metadata → articleText → 200 { articleText }
+```
+The modal shows the draft in an editable textarea. The user can revise it before posting.
+
+**`POST /api/user-books/:id/review`** — publish. `{ content }`, no `circleId` — the review goes to **every circle the user belongs to**, the same reach as the `added`/`started` posts (`features/circles.md`).
 ```
 requireAuth
-  → validate { rating: 0–5 half-steps, qa: [{q,a}] with ≥1 non-empty a, circleId: uuid }
   → service:
-      1. fetch user_book → 404 if missing → 403 if not yours
-      2. 409 if a review already exists for it
-      3. Gemini: qa + book metadata → articleText          ← the only slow step
-      4. insert reviews { userBookId, rating, qaJson, articleText }
-      5. update user_books { status: 'finished', finishedAt: now() }
-      6. insert feed_posts { type: 'finished', circleId, userBookId }
-  → 201 { review, userBook, post }
+      1. fetch user_book → 404 if missing or not owned by the caller (never 403 — see `api-contract.md`)
+      2. insert feed_posts { type: 'review', content, userBookId } for each of the caller's circles
+      3. update user_books { status: 'finished', finishedAt: now() }
+  → 201 { data: { posts: Post[] } }
 ```
+If the user is in no circles, the review is still published — the book still flips to `finished` — but no post is created anywhere; the modal says so before publishing.
 
-**Generate before writing.** If Gemini fails at step 3, nothing has been written and the user gets a clean retry. If it succeeded and step 5 or 6 fails, the review exists without a finished status — recoverable, and far better than the reverse.
+There is no `reviews` table row and no separate rating field on this endpoint — the review's text *is* the `feed_posts.content`, and rating stays on the shelf's star control (`BookCard`), independent of the interview.
 
-Supabase has no multi-statement transaction over the JS client. If steps 4–6 partially fail, clean up in a `catch`: delete the review row, then rethrow. Comment this clearly — it's a deliberate compensating action, not sloppiness.
+**Posts before status.** If step 3 fails, step 2's posts already exist — clean them up in a `catch` (delete each, then rethrow) rather than leave a review with a stale status. This is a deliberate compensating action, not sloppiness, because there's no multi-statement transaction over the Supabase JS client.
 
-### On Gemini failure at step 3
+### On Gemini failure during generation
 `502` with "We couldn't write your review just now. Please try again." The modal keeps the typed answers and shows a Retry. **Never lose the user's answers.**
 
 ## The article
@@ -135,19 +139,19 @@ Never discard the Q&A after generation.
 
 ## After posting
 
-Close the modal → toast "Your review is live." → refetch the feed (the finished post is at the top) and the profile's Finished tab.
+Close the modal → toast "Your review is live." → refetch the feed (the review post is at the top of each of the user's circles) and the profile's Finished tab and Reviews tab.
 
 Consider scrolling the new post into view on the feed. Nice, not required.
 
 ## Rules that are easy to get wrong
 
-- No editing step between generation and posting — that's the whole design.
-- Rating is required; answers to every question are not.
+- The built modal *does* have an editing step between generation and posting — the draft is shown in an editable textarea before the user publishes. This is a deliberate divergence from the original no-edit design; don't "fix" it back.
 - Questions come one at a time, not all at once.
 - Gemini failures never block the questions (fallback) but do block posting (retry).
 - Typed answers survive every failure path.
 - The article is generated **before** anything is written to the database.
-- Status becomes `finished` here and nowhere else.
+- Status becomes `finished` here and nowhere else — `PATCH /api/user-books/:id/status` rejects `finished` with 400 (`features/book-status.md`).
+- Exactly **one** post per circle per finished book. There is no separate `finished` post — the review post is the finished announcement.
 
 ## Out of scope
 

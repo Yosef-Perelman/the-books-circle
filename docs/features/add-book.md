@@ -102,14 +102,11 @@ validate(createUserBookSchema)
 
 Close the modal → toast "Added to your shelf." → refetch the feed (a new `added` post is there) and, if the user is on their own profile, refetch the Want-to-read tab.
 
-## Status pills inside this modal
+## No status control in this modal
 
-The confirm card shows the three pills with `Want to read` preselected. The user *may* pick `Reading` or `Finished` up front:
+There is no status picker in the Add-a-Book modal (nor on the book detail page's "Add to my shelf" button, nor in the AI chat's `add_book_to_list` tool). Every entry path creates the book as `want` and nothing else — `POST /api/user-books` doesn't even accept a `status` field in the body; the service function has no `status` parameter to pass one to.
 
-- Choosing **Reading** here still shows the "Are you sure?" confirmation (`features/book-status.md`).
-- Choosing **Finished** here adds the book, then immediately opens the interview modal — it cannot be marked finished without a review.
-
-Simplest correct implementation: always create the book as `want`, then apply the chosen transition through the normal status path. One code path, no duplicated rules.
+Moving the book to `reading` or `finished` is a separate action, taken afterward from the profile's status pills (`features/book-status.md`) — the normal path, not a shortcut offered at add time. This closes the only remaining way to reach `finished` without completing the review interview.
 
 ## Rules that are easy to get wrong
 

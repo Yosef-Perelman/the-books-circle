@@ -151,20 +151,22 @@ Any circle-mate's shelf is readable. Response is identical whether it's your own
 ```jsonc
 // 200 { "data": { "questions": ["What stuck with you most?", "Who would you recommend it to?"] } }
 ```
-2–3 questions, generated from title+author+genre. Falls back to a static list if Gemini fails — never block the user. 403 if not your row.
+2–3 questions, generated from title+author+genre. Falls back to a static list if Gemini fails — never block the user. 404 if the row doesn't exist.
+
+### `POST /api/user-books/:id/interview/review`
+Generation only — nothing is written to the database. Returns a draft the user can edit before publishing.
+```jsonc
+{ "qa": [ { "question": "...", "answer": "..." }, ... ] }
+// 200 { "data": "<generated article text>" }
+```
 
 ### `POST /api/user-books/:id/review`
-The one transactional endpoint. Generates the article, saves the review, flips the status, posts to the feed.
+Publish. Posts the review to **every circle the caller belongs to** (same reach as `added`/`started`), then flips the book to `finished`. No `circleId` — the server derives the circle list from the caller's own memberships.
 ```jsonc
-{ "rating": 4.5,
-  "qa": [ { "q": "...", "a": "..." }, { "q": "...", "a": "..." } ],
-  "circleId": "..." }
-// 201
-{ "data": { "review": { id, rating, articleText, createdAt },
-            "userBook": UserBook,
-            "post": Post } }
+{ "content": "..." }
+// 201 { "data": { "posts": [ Post, ... ] } }
 ```
-`qa` must have ≥1 pair with a non-empty answer. 409 if a review already exists for this `userBook`.
+404 if `:id` isn't a `user_books` row owned by the caller. If the caller has no circles, the status still flips and `posts` comes back `[]`. This is the only path to `status: 'finished'` — `PATCH /api/user-books/:id` rejects it (above).
 
 ---
 

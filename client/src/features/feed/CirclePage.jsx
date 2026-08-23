@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
 import { Box, Group, Title, Text, Avatar, Stack, Button, Loader, Center, Container } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -16,6 +16,8 @@ export default function CirclePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { refreshMyCircles } = useAuthStore();
+  const { bookActivity } = useOutletContext() ?? {};
+  const seenBookActivity = useRef(bookActivity);
 
   const [circle, setCircle] = useState(null);
   const [members, setMembers] = useState([]);
@@ -90,6 +92,20 @@ export default function CirclePage() {
     }
   }, [entry?.isIntersecting, hasMore, loadingMore, loading, id, offset]);
 
+  const refreshPosts = () => {
+    setOffset(0);
+    setHasMore(true);
+    postsApi.getPosts(id, 0, 10).then(setPosts);
+  };
+
+  // AddBookModal lives outside this page (AppShell), so a book added while
+  // this circle is open has no other way to reach it — see AppShell.jsx.
+  useEffect(() => {
+    if (bookActivity === seenBookActivity.current) return;
+    seenBookActivity.current = bookActivity;
+    if (!loading) refreshPosts();
+  }, [bookActivity]);
+
   const handleLeaveCircle = async () => {
     setActionLoading(true);
     try {
@@ -128,11 +144,7 @@ export default function CirclePage() {
           </Box>
 
           <CreatePostWidget
-            onPostCreated={() => {
-              setOffset(0);
-              setHasMore(true);
-              postsApi.getPosts(id, 0, 10).then(setPosts);
-            }}
+            onPostCreated={refreshPosts}
             activeCircle={circle}
           />
 

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Container, Title, Text, Group, Avatar, Stack, Tabs, Box, Loader, Center } from '@mantine/core';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import BookCard from '../../components/BookCard';
 import PostCard from '../feed/PostCard';
@@ -13,6 +13,8 @@ import InterviewModal from '../interview/InterviewModal';
 export default function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { bookActivity } = useOutletContext() ?? {};
+  const seenBookActivity = useRef(bookActivity);
   const authUser = useAuthStore(state => state.user);
   const [profileUser, setProfileUser] = useState(null);
   const [books, setBooks] = useState([]);
@@ -66,20 +68,36 @@ export default function ProfilePage() {
     return () => { isMounted = false; };
   }, [id, isOwnProfile, authUser?.id]);
 
+  // AddBookModal lives outside this page (AppShell), so a book added while
+  // viewing your own shelf has no other way to reach it — see AppShell.jsx.
+  // Adding a book can't change someone else's shelf, so skip there.
+  useEffect(() => {
+    if (bookActivity === seenBookActivity.current) return;
+    seenBookActivity.current = bookActivity;
+    if (isOwnProfile && authUser?.id) {
+      booksApi.getUserBooks(authUser.id).then(setBooks).catch(err => {
+        console.error('Failed to refresh shelf after adding a book', err);
+      });
+    }
+  }, [bookActivity]);
+
   const handleStatusChange = async (bookId, newStatus) => {
+    // 'finished' is only reachable by completing the review interview — the
+    // server rejects it on this endpoint. Open the interview instead of
+    // patching; the book's status doesn't change unless the review is published.
+    if (newStatus === 'finished') {
+      const ub = books.find(b => b.id === bookId);
+      if (ub) {
+        setInterviewBook(ub);
+        setIsInterviewOpen(true);
+      }
+      return;
+    }
+
     try {
       await booksApi.updateUserBookStatus(bookId, newStatus);
       setBooks(current => current.map(b => b.id === bookId ? { ...b, status: newStatus } : b));
       notifications.show({ title: 'Success', message: 'Book status updated', color: 'green' });
-      
-      // If marked as finished, offer interview
-      if (newStatus === 'finished') {
-        const ub = books.find(b => b.id === bookId);
-        if (ub) {
-          setInterviewBook({ ...ub, status: 'finished' });
-          setIsInterviewOpen(true);
-        }
-      }
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Failed to update status', color: 'red' });
     }
@@ -321,6 +339,15 @@ export default function ProfilePage() {
         opened={isInterviewOpen}
         onClose={() => setIsInterviewOpen(false)}
         userBook={interviewBook}
+        onPublished={async (userBookId) => {
+          setBooks(current => current.map(b => b.id === userBookId ? { ...b, status: 'finished' } : b));
+          try {
+            const postsData = await usersApi.getUserPosts(user?.id);
+            setPosts(postsData);
+          } catch (err) {
+            console.error('Failed to refresh posts after publishing review', err);
+          }
+        }}
       />
       <ConfirmDialog
         opened={!!removeConfirm}

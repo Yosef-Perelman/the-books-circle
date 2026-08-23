@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useIntersection } from '@mantine/hooks';
 import { Box, Group, Title, Text, Avatar, Stack, Button, TextInput, Loader, Center, Modal, Tabs as MantineTabs } from '@mantine/core';
 import { IconPlus, IconLogout, IconUsers } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { circlesApi } from '../../api/circlesApi';
 import { postsApi } from '../../api/postsApi';
 import CreatePostWidget from './CreatePostWidget';
@@ -14,6 +14,8 @@ import { avatarColorFor } from '../../lib/avatarColor';
 
 export default function FeedPage() {
   const navigate = useNavigate();
+  const { bookActivity } = useOutletContext() ?? {};
+  const seenBookActivity = useRef(bookActivity);
   const [circles, setCircles] = useState([]);
   const [circlesLoading, setCirclesLoading] = useState(true);
   const [activeCircle, setActiveCircle] = useState(null);
@@ -73,6 +75,14 @@ export default function FeedPage() {
   useEffect(() => {
     loadFeed();
   }, [activeCircle]);
+
+  // AddBookModal lives outside this page (AppShell), so a book added while
+  // this feed is open has no other way to reach it — see AppShell.jsx.
+  useEffect(() => {
+    if (bookActivity === seenBookActivity.current) return;
+    seenBookActivity.current = bookActivity;
+    if (activeCircle) loadFeed(true);
+  }, [bookActivity]);
 
   useEffect(() => {
     if (entry?.isIntersecting && hasMore && !loadingMore && !feedLoading && activeCircle) {
