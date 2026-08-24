@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Avatar, Card, Divider, Box } from '@mantine/core';
+import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Avatar, Card, Divider, Box, Menu } from '@mantine/core';
 import { useParams, useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconPlus, IconBook, IconCheck, IconBookmark, IconRobot } from '@tabler/icons-react';
 import ReactMarkdown from 'react-markdown';
@@ -31,10 +31,10 @@ export default function BookDetailsPage() {
     }
   };
 
-  const handleAddBook = async () => {
+  const handleAddBook = async (status = 'want') => {
     setIsAdding(true);
     try {
-      await booksApi.addUserBook({ book, source: 'search' });
+      await booksApi.addUserBook({ book, source: 'search', status });
       notifications.show({ title: 'Success', message: 'Added to your Want to Read shelf!', color: 'green' });
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Could not add book', color: 'red' });
@@ -173,18 +173,6 @@ export default function BookDetailsPage() {
                 </Box>
               </Card>
             )}
-            <Button
-              color="terracotta"
-              radius="xl"
-              size="md"
-              w="fit-content"
-              leftSection={<IconPlus size={20} />}
-              mt="md"
-              loading={isAdding}
-              onClick={handleAddBook}
-            >
-              Add to my shelf
-            </Button>
 
             {book.description && (
               <div mt="xl">
