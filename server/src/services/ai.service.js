@@ -226,3 +226,49 @@ export async function processChat(history, userId, displayName) {
     throw err;
   }
 }
+
+export async function analyzeBookRecommendation(userId, displayName, bookApiId) {
+  try {
+    const book = await GoogleBooksApi.getBookById(bookApiId);
+    if (!book) throw new Error("Book not found");
+
+    const userBooks = await UserBookService.getUserBooks(userId);
+    const reviews = await PostModel.getBookReviews(bookApiId);
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    // Format reading history
+    const finishedBooks = userBooks
+      .filter(b => b.status === 'finished' && b.book)
+      .map(b => `- ${b.book.title} by ${b.book.author} (Rated: ${b.rating || 'N/A'}/5)`)
+      .join('\n');
+    
+    // Format reviews
+    const formattedReviews = reviews
+      .map(r => `- ${r.reviewerName} (Rating: ${r.rating || 'N/A'}/5): "${r.content}"`)
+      .join('\n');
+
+    const prompt = `
+You are the AI Librarian for 'The Books Circle', a social reading app.
+Your task is to tell the user (${displayName || 'the user'}) if they would like the following book:
+Title: ${book.title}
+Author: ${book.author}
+Genre: ${book.genre || 'Unknown'}
+Description: ${book.description || 'No description available.'}
+
+Here is the user's reading history of finished books:
+${finishedBooks || 'No finished books yet.'}
+
+Here are what other community members say about this book:
+${formattedReviews || 'No community reviews yet.'}
+
+Based on their taste (extrapolated from what they read and their ratings) and the community reviews, write a short, friendly, and engaging recommendation (2-3 paragraphs max). Use markdown. Speak directly to the user. Do not invent reviews or books that are not in the provided lists.
+`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) {
+    console.error("[AI Agent] Error in analyzeBookRecommendation:", err);
+    throw err;
+  }
+}

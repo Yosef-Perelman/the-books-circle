@@ -19,6 +19,9 @@ export const booksApi = {
   getBookReviews: async (id) => {
     return await apiClient(`/books/${encodeURIComponent(id)}/reviews`);
   },
+  analyzeBook: async (id) => {
+    return await apiClient(`/books/${encodeURIComponent(id)}/analyze`);
+  },
   addUserBook: async (data) => {
     return await apiClient('/user-books', {
       method: 'POST',

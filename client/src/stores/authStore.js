@@ -19,26 +19,44 @@ export const useAuthStore = create((set, get) => ({
     }
   },
   
-  initializeAuth: () => {
-    // TEMPORARY BACKDOOR FOR BROWSER SUBAGENT
-    set({ 
-      user: {
-        id: '15ec8a50-286d-4954-b9ac-beba3a0086ea',
-        email: 'yanovslo1@gmail.com',
-        displayName: 'daniel yanovsky',
-        avatarUrl: null
-      }, 
-      token: 'dummy-token',
-      status: 'ready' 
+  initializeAuth: async () => {
+    set({ status: 'loading' });
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      set({ 
+        user: formatUser(session.user),
+        token: session.access_token,
+        status: 'ready'
+      });
+      localStorage.setItem('trc_token', session.access_token);
+      get().refreshMyCircles();
+    } else {
+      set({ user: null, token: null, status: 'ready' });
+      localStorage.removeItem('trc_token');
+    }
+
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        set({ 
+          user: formatUser(session.user),
+          token: session.access_token,
+          status: 'ready'
+        });
+        localStorage.setItem('trc_token', session.access_token);
+        get().refreshMyCircles();
+      } else {
+        set({ user: null, token: null, status: 'ready', myCircleIds: [] });
+        localStorage.removeItem('trc_token');
+      }
     });
-    localStorage.setItem('trc_token', 'dummy-token');
-    get().refreshMyCircles();
   },
 
   logout: async () => {
     await supabase.auth.signOut();
     useCircleStore.getState().reset();
-    set({ myCircleIds: [] });
+    set({ user: null, token: null, myCircleIds: [] });
+    localStorage.removeItem('trc_token');
   }
 }));
 
