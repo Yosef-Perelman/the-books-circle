@@ -95,6 +95,8 @@ const tools = [{
   ]
 }];
 
+export const getToolsDeclaration = () => tools[0].functionDeclarations;
+
 const systemInstruction = `You are the AI Librarian for 'The Books Circle', a social reading app. 
 You are friendly, concise, and deeply knowledgeable about books.
 Your goal is to help the user find books, manage their reading list, and connect with what their friends are reading.
@@ -192,6 +194,8 @@ export async function processChat(history, userId, displayName) {
     let result = await chat.sendMessage(lastUserMsg.parts);
     let call = result.response.functionCalls();
 
+    const usedTools = [];
+
     // Loop for tool execution
     let loops = 0;
     while (call && call.length > 0 && loops < 5) {
@@ -199,6 +203,7 @@ export async function processChat(history, userId, displayName) {
       const toolResponses = [];
       
       for (const functionCall of call) {
+        usedTools.push({ name: functionCall.name, args: functionCall.args });
         const functionResponse = await handleToolCall(functionCall, userId);
         toolResponses.push(`Tool '${functionCall.name}' returned: ${JSON.stringify(functionResponse)}`);
       }
@@ -220,7 +225,7 @@ export async function processChat(history, userId, displayName) {
       };
     });
 
-    return { text: responseText, history: newHistory };
+    return { text: responseText, history: newHistory, usedTools };
   } catch (err) {
     console.error("[AI Agent] Error in processChat:", err);
     throw err;
