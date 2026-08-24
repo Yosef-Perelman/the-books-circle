@@ -91,8 +91,6 @@ const tools = [{
   ]
 }];
 
-export const getToolsDeclaration = () => tools[0].functionDeclarations;
-
 const systemInstruction = `You are the AI Librarian for 'The Books Circle', a social reading app. 
 You are friendly, concise, and deeply knowledgeable about books.
 Your goal is to help the user find books, manage their reading list, and connect with what their friends are reading.
@@ -188,8 +186,6 @@ export async function processChat(history, userId, displayName) {
     let result = await chat.sendMessage(lastUserMsg.parts);
     let call = result.response.functionCalls();
 
-    const usedTools = [];
-
     // Loop for tool execution
     let loops = 0;
     while (call && call.length > 0 && loops < 5) {
@@ -197,7 +193,6 @@ export async function processChat(history, userId, displayName) {
       const toolResponses = [];
       
       for (const functionCall of call) {
-        usedTools.push({ name: functionCall.name, args: functionCall.args });
         const functionResponse = await handleToolCall(functionCall, userId);
         toolResponses.push(`Tool '${functionCall.name}' returned: ${JSON.stringify(functionResponse)}`);
       }
@@ -219,55 +214,9 @@ export async function processChat(history, userId, displayName) {
       };
     });
 
-    return { text: responseText, history: newHistory, usedTools };
+    return { text: responseText, history: newHistory };
   } catch (err) {
     console.error("[AI Agent] Error in processChat:", err);
-    throw err;
-  }
-}
-
-export async function analyzeBookRecommendation(userId, displayName, bookApiId) {
-  try {
-    const book = await GoogleBooksApi.getBookById(bookApiId);
-    if (!book) throw new Error("Book not found");
-
-    const userBooks = await UserBookService.getUserBooks(userId);
-    const reviews = await PostModel.getBookReviews(bookApiId);
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-
-    // Format reading history
-    const finishedBooks = userBooks
-      .filter(b => b.status === 'finished' && b.book)
-      .map(b => `- ${b.book.title} by ${b.book.author} (Rated: ${b.rating || 'N/A'}/5)`)
-      .join('\n');
-    
-    // Format reviews
-    const formattedReviews = reviews
-      .map(r => `- ${r.reviewerName} (Rating: ${r.rating || 'N/A'}/5): "${r.content}"`)
-      .join('\n');
-
-    const prompt = `
-You are the AI Librarian for 'The Books Circle', a social reading app.
-Your task is to tell the user (${displayName || 'the user'}) if they would like the following book:
-Title: ${book.title}
-Author: ${book.author}
-Genre: ${book.genre || 'Unknown'}
-Description: ${book.description || 'No description available.'}
-
-Here is the user's reading history of finished books:
-${finishedBooks || 'No finished books yet.'}
-
-Here are what other community members say about this book:
-${formattedReviews || 'No community reviews yet.'}
-
-Based on their taste (extrapolated from what they read and their ratings) and the community reviews, write a short, friendly, and engaging recommendation (2-3 paragraphs max). Use markdown. Speak directly to the user. Do not invent reviews or books that are not in the provided lists.
-`;
-
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (err) {
-    console.error("[AI Agent] Error in analyzeBookRecommendation:", err);
     throw err;
   }
 }

@@ -28,8 +28,3 @@ export const handleChatCtrl = asyncHandler(async (req, res) => {
     res.status(500).json({ error: 'Failed to process chat with AI Assistant' });
   }
 });
-
-export const getChatToolsCtrl = asyncHandler(async (req, res) => {
-  const tools = AIService.getToolsDeclaration();
-  res.json({ data: tools });
-});
