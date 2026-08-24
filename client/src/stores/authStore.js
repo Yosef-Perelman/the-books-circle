@@ -19,35 +19,36 @@ export const useAuthStore = create((set, get) => ({
     }
   },
   
-  initializeAuth: () => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      set({
-        user: session?.user ? formatUser(session.user) : null,
-        token: session?.access_token || null,
+  initializeAuth: async () => {
+    set({ status: 'loading' });
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      set({ 
+        user: formatUser(session.user),
+        token: session.access_token,
         status: 'ready'
       });
-      if (session?.access_token) {
-        localStorage.setItem('trc_token', session.access_token);
-        get().refreshMyCircles();
-      } else {
-        localStorage.removeItem('trc_token');
-      }
-    });
+      localStorage.setItem('trc_token', session.access_token);
+      get().refreshMyCircles();
+    } else {
+      set({ user: null, token: null, status: 'ready' });
+      localStorage.removeItem('trc_token');
+    }
 
     // Listen for auth changes (login, logout, token refresh)
     supabase.auth.onAuthStateChange((_event, session) => {
-      set({
-        user: session?.user ? formatUser(session.user) : null,
-        token: session?.access_token || null,
-        status: 'ready'
-      });
-      if (session?.access_token) {
+      if (session) {
+        set({
+          user: formatUser(session.user),
+          token: session.access_token,
+          status: 'ready'
+        });
         localStorage.setItem('trc_token', session.access_token);
         get().refreshMyCircles();
       } else {
+        set({ user: null, token: null, status: 'ready', myCircleIds: [] });
         localStorage.removeItem('trc_token');
-        set({ myCircleIds: [] });
       }
     });
   },
@@ -55,7 +56,8 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     await supabase.auth.signOut();
     useCircleStore.getState().reset();
-    set({ myCircleIds: [] });
+    set({ user: null, token: null, myCircleIds: [] });
+    localStorage.removeItem('trc_token');
   }
 }));
 

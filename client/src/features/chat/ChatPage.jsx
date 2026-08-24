@@ -21,6 +21,25 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, loading]);
 
+  useEffect(() => {
+    // Fetch and log available tools on component mount
+    const fetchTools = async () => {
+      try {
+        const tools = await chatApi.getTools();
+        console.log('--- 🛠️ AI AVAILABLE FUNCTIONS ---');
+        tools.forEach(tool => {
+          console.log(`Function: ${tool.name}`);
+          console.log(`Description: ${tool.description}`);
+          console.log(`Parameters:`, tool.parameters);
+          console.log('-----------------------------------');
+        });
+      } catch (err) {
+        console.error('Failed to fetch AI tools:', err);
+      }
+    };
+    fetchTools();
+  }, []);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -33,6 +52,16 @@ export default function ChatPage() {
 
     try {
       const response = await chatApi.sendMessage(newHistory);
+      
+      if (response.usedTools && response.usedTools.length > 0) {
+        console.log('--- 🤖 AI USED FUNCTIONS ---');
+        response.usedTools.forEach(tool => {
+          console.log(`Called Function: ${tool.name}`);
+          console.log(`Arguments:`, tool.args);
+        });
+        console.log('----------------------------');
+      }
+
       if (response.history) {
         setMessages(response.history);
       } else {

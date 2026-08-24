@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Avatar, Card, Divider, Box } from '@mantine/core';
 import { useParams, useNavigate } from 'react-router-dom';
-import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconBook, IconCheck, IconBookmark, IconRobot } from '@tabler/icons-react';
+import ReactMarkdown from 'react-markdown';
+
 import { booksApi } from '../../api/booksApi';
 import { notifications } from '@mantine/notifications';
 
@@ -13,6 +15,21 @@ export default function BookDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [aiRecommendation, setAiRecommendation] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAnalyzeBook = async () => {
+    setIsAnalyzing(true);
+    setAiRecommendation(null);
+    try {
+      const res = await booksApi.analyzeBook(id);
+      setAiRecommendation(res.recommendation || 'No recommendation received.');
+    } catch (err) {
+      notifications.show({ title: 'Error', message: 'Failed to get recommendation from AI.', color: 'red' });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleAddBook = async () => {
     setIsAdding(true);
@@ -104,6 +121,58 @@ export default function BookDetailsPage() {
               {book.publishedDate && <Badge color="gray" variant="outline">{book.publishedDate}</Badge>}
             </Group>
 
+            <Group mt="md">
+              <Menu shadow="md" width={200}>
+                <Menu.Target>
+                  <Button 
+                    color="terracotta" 
+                    radius="xl" 
+                    size="md" 
+                    leftSection={<IconPlus size={20} />}
+                    loading={isAdding}
+                  >
+                    Add to my shelf
+                  </Button>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                  <Menu.Label>Select shelf</Menu.Label>
+                  <Menu.Item leftSection={<IconCheck size={14} />} onClick={() => handleAddBook('finished')}>
+                    Finished
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconBook size={14} />} onClick={() => handleAddBook('reading')}>
+                    Currently Reading
+                  </Menu.Item>
+                  <Menu.Item leftSection={<IconBookmark size={14} />} onClick={() => handleAddBook('want')}>
+                    Want to Read
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+
+              <Button 
+                variant="light"
+                color="indigo" 
+                radius="xl" 
+                size="md" 
+                leftSection={<IconRobot size={20} />}
+                loading={isAnalyzing}
+                onClick={handleAnalyzeBook}
+              >
+                Ask AI Librarian
+              </Button>
+            </Group>
+
+            {aiRecommendation && (
+              <Card mt="md" padding="lg" radius="md" withBorder shadow="sm" style={{ backgroundColor: '#f8f9fa' }}>
+                <Group mb="xs">
+                  <IconRobot size={24} color="#5c7cfa" />
+                  <Title order={5} c="indigo">AI Librarian Recommendation</Title>
+                </Group>
+                <Box style={{ color: '#444', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                  <ReactMarkdown>{aiRecommendation}</ReactMarkdown>
+                </Box>
+              </Card>
+            )}
             <Button
               color="terracotta"
               radius="xl"
