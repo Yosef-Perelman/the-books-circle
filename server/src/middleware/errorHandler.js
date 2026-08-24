@@ -12,6 +12,13 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.name === 'MulterError') {
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'Image must be under 5MB.' : 'Could not process the uploaded file.';
+    return res.status(400).json({
+      error: { code: 'BAD_REQUEST', message },
+    });
+  }
+
   console.error('[Unhandled Error]', err);
   return res.status(500).json({
     error: {

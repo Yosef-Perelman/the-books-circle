@@ -48,6 +48,35 @@ export const useAuthStore = create((set, get) => ({
       } else {
         set({ user: null, token: null, status: 'ready', myCircleIds: [] });
         localStorage.removeItem('trc_token');
+  initializeAuth: () => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      set({
+        user: session?.user ? formatUser(session.user) : null,
+        token: session?.access_token || null,
+        status: 'ready'
+      });
+      if (session?.access_token) {
+        localStorage.setItem('trc_token', session.access_token);
+        get().refreshMyCircles();
+      } else {
+        localStorage.removeItem('trc_token');
+      }
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
+    supabase.auth.onAuthStateChange((_event, session) => {
+      set({
+        user: session?.user ? formatUser(session.user) : null,
+        token: session?.access_token || null,
+        status: 'ready'
+      });
+      if (session?.access_token) {
+        localStorage.setItem('trc_token', session.access_token);
+        get().refreshMyCircles();
+      } else {
+        localStorage.removeItem('trc_token');
+        set({ myCircleIds: [] });
       }
     });
   },

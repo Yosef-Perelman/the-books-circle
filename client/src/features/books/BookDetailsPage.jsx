@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Menu, Avatar, Card, Divider, Box } from '@mantine/core';
+import { Container, Title, Text, Image, Loader, Group, Button, Badge, Grid, Stack, Avatar, Card, Divider, Box } from '@mantine/core';
 import { useParams, useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconPlus, IconBook, IconCheck, IconBookmark, IconRobot } from '@tabler/icons-react';
 import ReactMarkdown from 'react-markdown';
+import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
 import { notifications } from '@mantine/notifications';
 
@@ -30,11 +31,11 @@ export default function BookDetailsPage() {
     }
   };
 
-  const handleAddBook = async (status) => {
+  const handleAddBook = async () => {
     setIsAdding(true);
     try {
-      await booksApi.addUserBook({ book, status, source: 'search' });
-      notifications.show({ title: 'Success', message: 'Book added to your shelf!', color: 'green' });
+      await booksApi.addUserBook({ book, source: 'search' });
+      notifications.show({ title: 'Success', message: 'Added to your Want to Read shelf!', color: 'green' });
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Could not add book', color: 'red' });
     } finally {
@@ -172,6 +173,18 @@ export default function BookDetailsPage() {
                 </Box>
               </Card>
             )}
+            <Button
+              color="terracotta"
+              radius="xl"
+              size="md"
+              w="fit-content"
+              leftSection={<IconPlus size={20} />}
+              mt="md"
+              loading={isAdding}
+              onClick={handleAddBook}
+            >
+              Add to my shelf
+            </Button>
 
             {book.description && (
               <div mt="xl">

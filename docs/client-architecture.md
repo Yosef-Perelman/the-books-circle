@@ -72,6 +72,25 @@ Modal state and toast helpers only. No server data.
 
 Feed posts, shelves, and leaderboard results are **page-local state**, not global. They refetch on mount. This is a 5-day build; a cache layer isn't worth it.
 
+### Cross-page refresh without a fourth store
+
+`AddBookModal` is rendered once in `AppShell`, as a sibling of the `<Outlet/>` — not inside any page — so it has no prop path to tell a mounted `FeedPage`/`CirclePage`/`ProfilePage` that a book was just added. This is **not** solved with a store; "three stores, no more" stands, and feed/shelf data stays page-local per the rule above.
+
+Instead, `AppShell` holds a single incrementing counter and passes it through React Router's `<Outlet context={{ bookActivity, notifyBookActivity }} />`. `AddBookModal` calls `notifyBookActivity()` after a successful add. Any page that cares reads it back with `useOutletContext()` and does a **silent** refetch (no loading spinner — the page is already showing valid content):
+
+```jsx
+const { bookActivity } = useOutletContext() ?? {};
+const seenBookActivity = useRef(bookActivity);
+
+useEffect(() => {
+  if (bookActivity === seenBookActivity.current) return; // mount, or an unrelated re-render
+  seenBookActivity.current = bookActivity;
+  /* silent refetch */
+}, [bookActivity]);
+```
+
+The `?? {}` and the ref guard both matter: the former keeps the page renderable if it's ever mounted outside this Outlet, the latter stops the effect's normal on-mount run from firing a redundant fetch. `FeedPage`, `CirclePage`, and `ProfilePage`'s own shelf all use this pattern — it does not generalize to a pub/sub system; add a new field to the context object if another cross-page signal is ever needed.
+
 ## API client
 
 `src/api/client.js` is the only place `fetch` appears.

@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireCircleMember } from '../middleware/requireCircleMember.js';
-import { addBookCtrl, getUserBooksCtrl, updateStatusCtrl, updateRatingCtrl, removeBookCtrl, getInterviewQuestionsCtrl, generateReviewCtrl } from '../controllers/userBook.controller.js';
+import { addBookCtrl, getUserBooksCtrl, updateStatusCtrl, updateRatingCtrl, removeBookCtrl, getInterviewQuestionsCtrl, generateReviewCtrl, publishReviewCtrl } from '../controllers/userBook.controller.js';
 
 const router = express.Router();
 
@@ -14,5 +14,6 @@ router.patch('/:id/rating', updateRatingCtrl);
 router.delete('/:id', removeBookCtrl);
 router.get('/:id/interview/questions', getInterviewQuestionsCtrl);
 router.post('/:id/interview/review', generateReviewCtrl);
+router.post('/:id/review', publishReviewCtrl);
 
 export default router;

@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Container, Title, Text, Group, Avatar, Stack, Tabs, Box, Loader, Center } from '@mantine/core';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import BookCard from '../../components/BookCard';
 import PostCard from '../feed/PostCard';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { booksApi } from '../../api/booksApi';
 import { usersApi } from '../../api/usersApi';
 import { useAuthStore } from '../../stores/authStore';
@@ -12,6 +13,8 @@ import InterviewModal from '../interview/InterviewModal';
 export default function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { bookActivity } = useOutletContext() ?? {};
+  const seenBookActivity = useRef(bookActivity);
   const authUser = useAuthStore(state => state.user);
   const [profileUser, setProfileUser] = useState(null);
   const [books, setBooks] = useState([]);
@@ -21,6 +24,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('finished');
   const [isInterviewOpen, setIsInterviewOpen] = useState(false);
   const [interviewBook, setInterviewBook] = useState(null);
+  const [removeConfirm, setRemoveConfirm] = useState(null);
 
   // Determine if viewing own profile
   const isOwnProfile = !id || id === authUser?.id;
@@ -64,20 +68,36 @@ export default function ProfilePage() {
     return () => { isMounted = false; };
   }, [id, isOwnProfile, authUser?.id]);
 
+  // AddBookModal lives outside this page (AppShell), so a book added while
+  // viewing your own shelf has no other way to reach it — see AppShell.jsx.
+  // Adding a book can't change someone else's shelf, so skip there.
+  useEffect(() => {
+    if (bookActivity === seenBookActivity.current) return;
+    seenBookActivity.current = bookActivity;
+    if (isOwnProfile && authUser?.id) {
+      booksApi.getUserBooks(authUser.id).then(setBooks).catch(err => {
+        console.error('Failed to refresh shelf after adding a book', err);
+      });
+    }
+  }, [bookActivity]);
+
   const handleStatusChange = async (bookId, newStatus) => {
+    // 'finished' is only reachable by completing the review interview — the
+    // server rejects it on this endpoint. Open the interview instead of
+    // patching; the book's status doesn't change unless the review is published.
+    if (newStatus === 'finished') {
+      const ub = books.find(b => b.id === bookId);
+      if (ub) {
+        setInterviewBook(ub);
+        setIsInterviewOpen(true);
+      }
+      return;
+    }
+
     try {
       await booksApi.updateUserBookStatus(bookId, newStatus);
       setBooks(current => current.map(b => b.id === bookId ? { ...b, status: newStatus } : b));
       notifications.show({ title: 'Success', message: 'Book status updated', color: 'green' });
-      
-      // If marked as finished, offer interview
-      if (newStatus === 'finished') {
-        const ub = books.find(b => b.id === bookId);
-        if (ub) {
-          setInterviewBook({ ...ub, status: 'finished' });
-          setIsInterviewOpen(true);
-        }
-      }
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Failed to update status', color: 'red' });
     }
@@ -94,13 +114,14 @@ export default function ProfilePage() {
   };
 
   const handleRemoveBook = async (bookId) => {
-    if (!window.confirm('Are you sure you want to remove this book from your lists?')) return;
     try {
       await booksApi.removeUserBook(bookId);
       setBooks(current => current.filter(b => b.id !== bookId));
       notifications.show({ title: 'Success', message: 'Book removed', color: 'green' });
     } catch (err) {
       notifications.show({ title: 'Error', message: 'Failed to remove book', color: 'red' });
+    } finally {
+      setRemoveConfirm(null);
     }
   };
 
@@ -123,7 +144,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60}>
+    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60} pb={60}>
       <Container size="md">
         
         {/* Profile Header */}
@@ -197,7 +218,7 @@ export default function ProfilePage() {
                 borderBottom: activeTab === 'posts' ? '3px solid #C96F4B' : '3px solid transparent'
               })}
             >
-              Posts & Reviews
+              Reviews
             </Tabs.Tab>
             <Tabs.Tab 
               value="circles" 
@@ -224,7 +245,7 @@ export default function ProfilePage() {
                   interactive={isOwnProfile}
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
-                  onRemove={() => handleRemoveBook(ub.id)}
+                  onRemove={() => setRemoveConfirm(ub.id)}
                   onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
@@ -242,7 +263,7 @@ export default function ProfilePage() {
                   interactive={isOwnProfile}
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
-                  onRemove={() => handleRemoveBook(ub.id)}
+                  onRemove={() => setRemoveConfirm(ub.id)}
                   onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
@@ -260,7 +281,7 @@ export default function ProfilePage() {
                   interactive={isOwnProfile}
                   onStatusChange={(newStatus) => handleStatusChange(ub.id, newStatus)}
                   onRatingChange={(newRating) => handleRatingChange(ub.id, newRating)}
-                  onRemove={() => handleRemoveBook(ub.id)}
+                  onRemove={() => setRemoveConfirm(ub.id)}
                   onWriteReview={() => { setInterviewBook(ub); setIsInterviewOpen(true); }}
                 />
               ))}
@@ -270,10 +291,10 @@ export default function ProfilePage() {
 
           <Tabs.Panel value="posts">
             <Stack gap="md">
-              {posts.map(post => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
+              {posts.filter(post => post.type === 'review').map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
                   onReactionUpdate={(postId, increment) => {
                     setPosts(current => current.map(p => {
                       if (p.id === postId) {
@@ -291,7 +312,7 @@ export default function ProfilePage() {
                   }}
                 />
               ))}
-              {posts.length === 0 && <Text c="dimmed" ta="center" py="xl">No posts or reviews yet.</Text>}
+              {posts.filter(post => post.type === 'review').length === 0 && <Text c="dimmed" ta="center" py="xl">No reviews yet.</Text>}
             </Stack>
           </Tabs.Panel>
 
@@ -314,10 +335,28 @@ export default function ProfilePage() {
         </Tabs>
         
       </Container>
-      <InterviewModal 
-        opened={isInterviewOpen} 
-        onClose={() => setIsInterviewOpen(false)} 
-        userBook={interviewBook} 
+      <InterviewModal
+        opened={isInterviewOpen}
+        onClose={() => setIsInterviewOpen(false)}
+        userBook={interviewBook}
+        onPublished={async (userBookId) => {
+          setBooks(current => current.map(b => b.id === userBookId ? { ...b, status: 'finished' } : b));
+          try {
+            const postsData = await usersApi.getUserPosts(user?.id);
+            setPosts(postsData);
+          } catch (err) {
+            console.error('Failed to refresh posts after publishing review', err);
+          }
+        }}
+      />
+      <ConfirmDialog
+        opened={!!removeConfirm}
+        onClose={() => setRemoveConfirm(null)}
+        onConfirm={() => handleRemoveBook(removeConfirm)}
+        title="Remove this book?"
+        message="Are you sure you want to remove this book from your lists?"
+        confirmLabel="Remove"
+        danger
       />
     </Box>
   );

@@ -3,15 +3,16 @@ import * as UserBookService from '../services/userBook.service.js';
 import * as GeminiApi from '../integrations/gemini.js';
 import * as BookModel from '../models/book.model.js';
 import { supabase } from '../config/supabase.js';
+import { ApiError } from '../utils/ApiError.js';
+import { STATUS } from '../utils/constants.js';
 
 export const addBookCtrl = asyncHandler(async (req, res) => {
-  const { book, status, source } = req.body;
+  const { book, source } = req.body;
   const userId = req.user.id;
 
   const result = await UserBookService.addBook({
     userId,
     bookData: book,
-    status,
     source
   });
 
@@ -27,8 +28,26 @@ export const updateStatusCtrl = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const userId = req.user.id;
+
+  if (status === STATUS.FINISHED) {
+    throw new ApiError(400, 'BAD_REQUEST', 'Finishing a book requires completing the review interview.');
+  }
+
   await UserBookService.updateStatus(id, userId, status);
   res.json({ message: 'Status updated' });
+});
+
+export const publishReviewCtrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  const userId = req.user.id;
+
+  if (!content || !content.trim()) {
+    throw new ApiError(400, 'BAD_REQUEST', 'Review content is required.');
+  }
+
+  const result = await UserBookService.publishReview({ userBookId: id, userId, content: content.trim() });
+  res.status(201).json({ data: result });
 });
 
 export const updateRatingCtrl = asyncHandler(async (req, res) => {

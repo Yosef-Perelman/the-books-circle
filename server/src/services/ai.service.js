@@ -43,20 +43,16 @@ const getCircleActivityDeclaration = {
 
 const addBookToListDeclaration = {
   name: "add_book_to_list",
-  description: "Add a book to the user's reading list. Use this ONLY if the user explicitly asks to add a book to their list.",
+  description: "Add a book to the user's reading list as 'want to read'. Use this ONLY if the user explicitly asks to add a book to their list. Every book is added as 'want to read' — there is no way to add it directly as reading or finished; the user changes that from their profile afterward.",
   parameters: {
     type: "OBJECT",
     properties: {
       book_id: {
         type: "STRING",
         description: "The API ID of the book to add (must be retrieved from search_books_external first)."
-      },
-      status: {
-        type: "STRING",
-        description: "The status of the book. Must be one of: 'want', 'reading', 'finished'."
       }
     },
-    required: ["book_id", "status"]
+    required: ["book_id"]
   }
 };
 
@@ -121,8 +117,7 @@ async function handleToolCall(functionCall, userId) {
         return { result: books };
       }
       case 'get_circle_activity': {
-        // Fetch global feed which includes all circle activity for this user
-        const feed = await PostModel.getFeed('global', userId, 0, 15);
+        const feed = await PostModel.getFeedAcrossCircles(userId, 0, 15);
         return { result: feed };
       }
       case 'add_book_to_list': {
@@ -138,10 +133,9 @@ async function handleToolCall(functionCall, userId) {
             genre: bookDetails.genre,
             publishedDate: bookDetails.publishedDate
           },
-          status: args.status,
           source: 'search'
         });
-        return { result: { success: true, message: `Added ${bookDetails.title} to list as ${args.status}` } };
+        return { result: { success: true, message: `Added ${bookDetails.title} to your Want to Read list` } };
       }
       case 'get_recommended_circles': {
         const circles = await CircleModel.getRecommendedCircles(userId);

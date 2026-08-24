@@ -21,6 +21,10 @@ export const booksApi = {
   },
   analyzeBook: async (id) => {
     return await apiClient(`/books/${encodeURIComponent(id)}/analyze`);
+  scanBookCover: async (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return await apiClient('/books/scan', { method: 'POST', body: form });
   },
   addUserBook: async (data) => {
     return await apiClient('/user-books', {
@@ -56,6 +60,12 @@ export const booksApi = {
     return await apiClient(`/user-books/${userBookId}/interview/review`, {
       method: 'POST',
       body: { qa }
+    });
+  },
+  publishReview: async (userBookId, content) => {
+    return await apiClient(`/user-books/${userBookId}/review`, {
+      method: 'POST',
+      body: { content }
     });
   }
 };

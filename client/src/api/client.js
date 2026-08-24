@@ -4,7 +4,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export async function apiClient(endpoint, { body, ...customConfig } = {}) {
   const token = localStorage.getItem('trc_token');
-  const headers = { 'Content-Type': 'application/json' };
+  const isFormData = body instanceof FormData;
+  // FormData sets its own multipart Content-Type (with boundary) — never
+  // override it, and never JSON.stringify a FormData body.
+  const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -17,7 +20,7 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
   };
 
   if (body) {
-    config.body = JSON.stringify(body);
+    config.body = isFormData ? body : JSON.stringify(body);
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, config);

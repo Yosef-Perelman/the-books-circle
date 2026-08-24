@@ -24,6 +24,17 @@ export async function createPost({ circleId, userId, type, content = null, userB
   return mapPost(data);
 }
 
+export async function getPostCircleId(postId) {
+  const { data, error } = await supabase
+    .from('feed_posts')
+    .select('circle_id')
+    .eq('id', postId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.circle_id ?? null;
+}
+
 export async function deletePost(postId, userId) {
   const { data, error } = await supabase
     .from('feed_posts')
@@ -137,46 +148,23 @@ export async function createPostForAllCircles({ userId, type, content = null, us
   );
 }
 
-export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
-  let query = supabase
-    .from('feed_posts')
-    .select(`
-      id,
-      type,
-      content,
-      created_at,
-      circles:circle_id (id, name),
-      users:user_id (id, display_name, avatar_url),
-      user_books:user_book_id (
-        id, status, rating,
-        books (id, title, author, cover_url, api_id)
-      ),
-      reactions (user_id),
-      comments (id)
-    `);
+const FEED_SELECT = `
+  id,
+  type,
+  content,
+  created_at,
+  circles:circle_id (id, name),
+  users:user_id (id, display_name, avatar_url),
+  user_books:user_book_id (
+    id, status, rating,
+    books (id, title, author, cover_url, api_id)
+  ),
+  reactions (user_id),
+  comments (id)
+`;
 
-  if (circleId !== 'global') {
-    query = query.eq('circle_id', circleId);
-  } else {
-    // For global feed, get all circles the user is in + the real Global circle
-    const circles = await CircleModel.findByUser(currentUserId);
-    const circleIds = circles.map(c => c.id);
-    const globalCircleId = await CircleModel.getOrCreateGlobalCircle(currentUserId);
-    
-    if (!circleIds.includes(globalCircleId)) {
-      circleIds.push(globalCircleId);
-    }
-    
-    query = query.in('circle_id', circleIds);
-  }
-
-  const { data, error } = await query
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) throw error;
-  
-  return data.map(row => ({
+function mapFeedRow(row, currentUserId) {
+  return {
     id: row.id,
     type: row.type,
     content: row.content,
@@ -205,63 +193,50 @@ export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
     reactionsCount: row.reactions ? row.reactions.length : 0,
     commentsCount: row.comments ? row.comments.length : 0,
     userReacted: row.reactions ? row.reactions.some(r => r.user_id === currentUserId) : false
-  }));
+  };
+}
+
+export async function getFeed(circleId, currentUserId, offset = 0, limit = 10) {
+  const { data, error } = await supabase
+    .from('feed_posts')
+    .select(FEED_SELECT)
+    .eq('circle_id', circleId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+  return data.map(row => mapFeedRow(row, currentUserId));
 }
 
 export async function getFeedByUser(userId, currentUserId, offset = 0, limit = 10) {
-  const query = supabase
+  const { data, error } = await supabase
     .from('feed_posts')
-    .select(`
-      id,
-      type,
-      content,
-      created_at,
-      circles:circle_id (id, name),
-      users:user_id (id, display_name, avatar_url),
-      user_books:user_book_id (
-        id, status, rating,
-        books (id, title, author, cover_url, api_id)
-      ),
-      reactions (user_id),
-      comments (id)
-    `)
+    .select(FEED_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  const { data, error } = await query;
   if (error) throw error;
-  
-  return data.map(row => ({
-    id: row.id,
-    type: row.type,
-    content: row.content,
-    createdAt: row.created_at,
-    circle: row.circles ? {
-      id: row.circles.id,
-      name: row.circles.name
-    } : null,
-    user: row.users ? {
-      id: row.users.id,
-      name: row.users.display_name,
-      avatarUrl: row.users.avatar_url
-    } : null,
-    userBook: row.user_books ? {
-      id: row.user_books.id,
-      status: row.user_books.status,
-      rating: row.user_books.rating,
-      book: row.user_books.books ? {
-        id: row.user_books.books.id,
-        title: row.user_books.books.title,
-        author: row.user_books.books.author,
-        coverUrl: row.user_books.books.cover_url,
-        apiId: row.user_books.books.api_id
-      } : null
-    } : null,
-    reactionsCount: row.reactions ? row.reactions.length : 0,
-    commentsCount: row.comments ? row.comments.length : 0,
-    userReacted: row.reactions ? row.reactions.some(r => r.user_id === currentUserId) : false
-  }));
+  return data.map(row => mapFeedRow(row, currentUserId));
+}
+
+// Aggregates posts across every circle the caller belongs to — used by the
+// AI chat's "what are my friends reading" tool. Always scoped to the
+// caller's own memberships, never a caller-supplied circle list.
+export async function getFeedAcrossCircles(currentUserId, offset = 0, limit = 10) {
+  const circles = await CircleModel.findByUser(currentUserId);
+  const circleIds = circles.map(c => c.id);
+  if (circleIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('feed_posts')
+    .select(FEED_SELECT)
+    .in('circle_id', circleIds)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+  return data.map(row => mapFeedRow(row, currentUserId));
 }
 
 export async function toggleReaction(postId, userId) {

@@ -64,7 +64,7 @@ This check is a demo talking point — it's exactly the "Authentication & Author
 |---|---|
 | `want` | clear `started_at` and `finished_at` |
 | `reading` | set `started_at = now()` **if null** (don't overwrite on re-entry); create a `started` feed post |
-| `finished` | set `finished_at = now()`; create a `finished` feed post — **only via the review endpoint** |
+| `finished` | set `finished_at = now()`; the review post (`type: 'review'`) *is* the announcement — **only via the review endpoint**, no separate `finished`-typed post |
 
 `updated_at` is set on every write by the service.
 
@@ -72,7 +72,7 @@ This check is a demo talking point — it's exactly the "Authentication & Author
 
 `PATCH /api/user-books/:id { status: 'finished' }` returns **400 `BAD_REQUEST`**: "Finishing a book requires completing the review interview."
 
-The only path to `finished` is `POST /api/user-books/:id/review`, which writes the review, flips the status, and creates the post together (`features/ai-interview.md`). The interview is mandatory — it's the app's differentiator, so the data model refuses to let it be skipped.
+The only path to `finished` is `POST /api/user-books/:id/review`, which posts the review to every circle the user belongs to and then flips the status (`features/ai-interview.md`). The interview is mandatory — it's the app's differentiator, so the data model refuses to let it be skipped.
 
 On the client, clicking the **Finished** pill therefore does not call PATCH. It opens `InterviewModal`. If the user cancels the interview, the status does not change.
 
@@ -86,7 +86,7 @@ A no-op. Return `200` with the unchanged row. Do not create a duplicate feed pos
 |---|---|
 | Own profile, book row | Yes |
 | Another member's profile | No — read-only, single pill |
-| Add-a-Book confirm card | Yes (`Want to read` preselected) |
+| Add-a-Book confirm card | Not rendered — every add lands as `want` (`features/add-book.md`) |
 | Feed posts | Not rendered at all |
 
 ## Client flow
