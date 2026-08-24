@@ -1,6 +1,5 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { searchBooks, getExplore, getBookDetails, searchAuthorsCtrl, getAuthorDetailsCtrl, getBookReviewsCtrl, analyzeBookRecommendationCtrl } from '../controllers/book.controller.js';
 import { upload } from '../middleware/upload.js';
 import { searchBooks, getExplore, getBookDetails, searchAuthorsCtrl, getAuthorDetailsCtrl, getBookReviewsCtrl, scanBookCoverCtrl } from '../controllers/book.controller.js';
 
@@ -15,6 +14,5 @@ router.get('/authors/search', searchAuthorsCtrl);
 router.get('/authors/:id', getAuthorDetailsCtrl);
 router.get('/:id', getBookDetails);
 router.get('/:id/reviews', getBookReviewsCtrl);
-router.get('/:id/analyze', analyzeBookRecommendationCtrl);
 
 export default router;

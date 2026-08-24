@@ -3,8 +3,6 @@ import { readBookCover } from '../integrations/gemini.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as PostModel from '../models/post.model.js';
-import * as AIService from '../services/ai.service.js';
-import { supabase } from '../config/supabase.js';
 
 export const searchBooks = asyncHandler(async (req, res) => {
   const query = req.query.q;
@@ -85,25 +83,4 @@ export const getBookReviewsCtrl = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const reviews = await PostModel.getBookReviews(id);
   res.json({ data: reviews });
-});
-
-export const analyzeBookRecommendationCtrl = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-
-  const { data: user } = await supabase
-    .from('users')
-    .select('display_name')
-    .eq('id', userId)
-    .single();
-
-  const displayName = user?.display_name || 'the user';
-
-  try {
-    const recommendation = await AIService.analyzeBookRecommendation(userId, displayName, id);
-    res.json({ data: { recommendation } });
-  } catch (err) {
-    console.error('AI Recommendation Error:', err);
-    res.status(500).json({ error: 'Failed to analyze book recommendation' });
-  }
 });

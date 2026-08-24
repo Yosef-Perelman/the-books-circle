@@ -19,8 +19,6 @@ export const booksApi = {
   getBookReviews: async (id) => {
     return await apiClient(`/books/${encodeURIComponent(id)}/reviews`);
   },
-  analyzeBook: async (id) => {
-    return await apiClient(`/books/${encodeURIComponent(id)}/analyze`);
   scanBookCover: async (file) => {
     const form = new FormData();
     form.append('image', file);
