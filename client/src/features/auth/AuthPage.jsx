@@ -31,12 +31,12 @@ export default function AuthPage() {
   };
 
   return (
-    <Container size="lg" style={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
+    <Container size="lg" py="xl" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
       <Card radius="32px" shadow="xl" p={0} style={{ width: '100%', overflow: 'hidden', minHeight: 600 }}>
         <Group align="stretch" gap={0} wrap="nowrap" style={{ minHeight: 600 }}>
-          
+
           {/* Left Side: Branding */}
-          <Box bg="terracotta" p={50} style={{ width: '50%', color: 'white', display: 'flex', flexDirection: 'column' }}>
+          <Box visibleFrom="sm" bg="terracotta" p={50} style={{ width: '50%', color: 'white', display: 'flex', flexDirection: 'column' }}>
             <Group>
               <Box w={32} h={32} bg="white" style={{ borderRadius: '8px', border: '4px solid #C96F4B', outline: '3px solid white' }} />
               <Title order={3} c="white" style={{ fontFamily: 'Newsreader, serif', fontSize: '24px' }}>
@@ -79,7 +79,7 @@ export default function AuthPage() {
           </Box>
 
           {/* Right Side: Auth Flow */}
-          <Box bg="surface" p={50} style={{ width: '50%', display: 'flex', flexDirection: 'column' }}>
+          <Box bg="surface" p={{ base: 'lg', sm: 50 }} w={{ base: '100%', sm: '50%' }} style={{ display: 'flex', flexDirection: 'column' }}>
             
             <Stack gap="xl" style={{ flex: 1, justifyContent: 'center' }}>
               <Box>

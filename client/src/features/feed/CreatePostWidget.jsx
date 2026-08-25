@@ -87,7 +87,7 @@ export default function CreatePostWidget({ onPostCreated, activeCircle }) {
               </Card>
             )}
 
-            <Group justify="space-between" mt="md" align="center">
+            <Group justify="space-between" mt="md" align="center" wrap="wrap" gap="sm">
               <Group gap="sm">
                 <Button 
                   variant={postType === 'text' && !selectedBook ? 'light' : 'subtle'} 

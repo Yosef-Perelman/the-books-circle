@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
-import { useIntersection } from '@mantine/hooks';
-import { Box, Group, Title, Text, Avatar, Stack, Button, Loader, Center, Container } from '@mantine/core';
+import { useIntersection, useDisclosure } from '@mantine/hooks';
+import { Box, Group, Title, Text, Avatar, Stack, Button, Loader, Center, Container, Drawer } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { circlesApi } from '../../api/circlesApi';
 import { postsApi } from '../../api/postsApi';
@@ -10,7 +10,7 @@ import CreatePostWidget from './CreatePostWidget';
 import PostCard from './PostCard';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { avatarColorFor } from '../../lib/avatarColor';
-import { IconLogout } from '@tabler/icons-react';
+import { IconLogout, IconUsers } from '@tabler/icons-react';
 
 export default function CirclePage() {
   const { id } = useParams();
@@ -29,6 +29,8 @@ export default function CirclePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  const [membersDrawerOpened, { open: openMembersDrawer, close: closeMembersDrawer }] = useDisclosure(false);
 
   const { ref: loadMoreRef, entry } = useIntersection({
     root: null,
@@ -132,15 +134,56 @@ export default function CirclePage() {
 
   if (!circle) return null;
 
+  const memberRows = (
+    <Stack gap="md">
+      {members.map(m => (
+        <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
+          <Avatar radius="xl" size="md" src={m.avatarUrl} color={avatarColorFor(m.id)} variant="filled">
+            {m.name?.charAt(0) || 'M'}
+          </Avatar>
+          <Stack gap={0}>
+            <Text fw={600} size="sm">{m.name}</Text>
+            <Text size="xs" c="muted">in {circle.name}</Text>
+          </Stack>
+        </Group>
+      ))}
+    </Stack>
+  );
+
+  const membersFooter = (
+    <>
+      <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
+        {members.length} members · code {circle.inviteCode || 'N/A'}
+      </Text>
+
+      <Button
+        variant="subtle"
+        color="red"
+        fullWidth
+        mt="md"
+        size="xs"
+        leftSection={<IconLogout size={14} />}
+        onClick={() => setLeaveConfirmOpened(true)}
+      >
+        Leave Circle
+      </Button>
+    </>
+  );
+
   return (
     <Group align="stretch" gap={0} wrap="nowrap" style={{ minHeight: 'calc(100vh - 70px)' }}>
       {/* Center Feed */}
-      <Box style={{ flex: 1 }} bg="surface" p={40}>
+      <Box style={{ flex: 1 }} bg="surface" p={{ base: 'md', sm: 40 }}>
         <Container size="sm" mx="auto" p={0}>
 
           <Box mb="xl">
             <Title order={2} style={{ fontFamily: 'Newsreader, serif', color: '#3A322A' }}>{circle.name}</Title>
-            <Text c="dimmed">{circle.memberCount} members</Text>
+            <Group justify="space-between" wrap="wrap" gap="sm">
+              <Text c="dimmed">{circle.memberCount} members</Text>
+              <Button hiddenFrom="sm" variant="light" color="forest" radius="xl" size="xs" leftSection={<IconUsers size={14} />} onClick={openMembersDrawer}>
+                Members
+              </Button>
+            </Group>
           </Box>
 
           <CreatePostWidget
@@ -188,40 +231,17 @@ export default function CirclePage() {
         </Container>
       </Box>
 
-      {/* Right Sidebar: Members */}
-      <Box w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
+      {/* Right Sidebar: Members — desktop only, mobile uses the drawer below */}
+      <Box visibleFrom="sm" w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
         <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLE MEMBERS</Text>
-
-        <Stack gap="md">
-          {members.map(m => (
-            <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
-              <Avatar radius="xl" size="md" src={m.avatarUrl} color={avatarColorFor(m.id)} variant="filled">
-                {m.name?.charAt(0) || 'M'}
-              </Avatar>
-              <Stack gap={0}>
-                <Text fw={600} size="sm">{m.name}</Text>
-                <Text size="xs" c="muted">in {circle.name}</Text>
-              </Stack>
-            </Group>
-          ))}
-        </Stack>
-
-        <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
-          {members.length} members · code {circle.inviteCode || 'N/A'}
-        </Text>
-
-        <Button
-          variant="subtle"
-          color="red"
-          fullWidth
-          mt="md"
-          size="xs"
-          leftSection={<IconLogout size={14} />}
-          onClick={() => setLeaveConfirmOpened(true)}
-        >
-          Leave Circle
-        </Button>
+        {memberRows}
+        {membersFooter}
       </Box>
+
+      <Drawer opened={membersDrawerOpened} onClose={closeMembersDrawer} position="right" title="Circle Members" padding="md">
+        {memberRows}
+        {membersFooter}
+      </Drawer>
 
       <ConfirmDialog
         opened={leaveConfirmOpened}

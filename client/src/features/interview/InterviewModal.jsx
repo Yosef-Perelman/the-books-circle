@@ -3,8 +3,10 @@ import { Modal, Button, Stack, Text, Textarea, Loader, Center, Group } from '@ma
 import { notifications } from '@mantine/notifications';
 import { booksApi } from '../../api/booksApi';
 import { circlesApi } from '../../api/circlesApi';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export default function InterviewModal({ opened, onClose, userBook, onPublished = () => {} }) {
+  const isMobile = useIsMobile();
   const [step, setStep] = useState('loading-questions'); // loading-questions, q0, q1, q2, loading-review, edit-review
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
@@ -91,7 +93,7 @@ export default function InterviewModal({ opened, onClose, userBook, onPublished 
   if (!userBook) return null;
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`Reviewing "${userBook.book?.title}"`} size="xl" closeOnClickOutside={false}>
+    <Modal opened={opened} onClose={onClose} title={`Reviewing "${userBook.book?.title}"`} size="xl" closeOnClickOutside={false} fullScreen={isMobile}>
       {step === 'loading-questions' && (
         <Center py="xl">
           <Stack align="center" gap="sm">

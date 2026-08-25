@@ -51,7 +51,7 @@ Centre column is centred in remaining space and capped at 680px. Sidebars are st
 
 ### Mobile (<768px)
 
-Single column, 16px gutters. Navbar keeps the wordmark and collapses nav into a burger menu. Two icon buttons in the navbar open the sidebars as Mantine `<Drawer>`s — circles from the left, members from the right. Modals go `fullScreen`. Feed cards go edge-to-edge minus the gutter.
+Single column, 16px gutters. Navbar drops the wordmark text (the glyph stays and still links home) to make room for the search box, and collapses nav into a burger menu. The circle/member sidebars become Mantine `<Drawer>`s, opened from buttons **inside the feed itself** — a small bar above the composer on `/feed`, a "Members" button next to the circle name on `/circle/:id` — not from the navbar, since the navbar has no reach into which circle is open. Modals go `fullScreen`. Feed cards go edge-to-edge minus the gutter.
 
 Profile tabs and the leaderboard's 2×2 grid both become a single column. The leaderboard's All-Time/Monthly toggle stays a full-width segmented control.
 
@@ -59,6 +59,8 @@ Profile tabs and the leaderboard's 2×2 grid both become a single column. The le
 
 ### Navbar
 Wordmark (serif, terracotta, with the rounded-square book glyph) left. Right: user avatar, then `Profile` / `Leaderboard` / `Logout` as text links, 15px. Active link is `terracotta` semibold; the others are `ink` regular, hovering to `muted`. Logout is always `muted`.
+
+Below 768px: the "The Reading Circles" text hides (the glyph alone stays and remains clickable to `/feed`), making room for the search box next to it. Nav links and the desktop avatar+name group move into the burger drawer instead.
 
 ### Sidebar section
 Uppercase `label`-token heading in `forest`, then rows. A row is: 32px coloured circle + name, 12px padding, 999px radius, hover `bg: greenTint`.

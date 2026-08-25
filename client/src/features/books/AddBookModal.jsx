@@ -6,7 +6,7 @@ import { IconPlus, IconCheck, IconCamera } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
 import BookCover from '../../components/BookCover';
 
-export default function AddBookModal({ opened, onClose, onBookAdded = () => {} }) {
+export default function AddBookModal({ opened, onClose, onBookAdded = () => {}, fullScreen = false }) {
   const [activeTab, setActiveTab] = useState('search');
 
   const [query, setQuery] = useState('');
@@ -134,7 +134,7 @@ export default function AddBookModal({ opened, onClose, onBookAdded = () => {} }
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Add a book" size="md">
+    <Modal opened={opened} onClose={onClose} title="Add a book" size="md" fullScreen={fullScreen}>
       <Tabs value={activeTab} onChange={setActiveTab} color="terracotta">
         <Tabs.List>
           <Tabs.Tab value="scan">Scan cover</Tabs.Tab>

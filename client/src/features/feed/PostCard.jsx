@@ -9,9 +9,11 @@ import { circlesApi } from '../../api/circlesApi';
 import { useAuthStore } from '../../stores/authStore';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { avatarColorFor } from '../../lib/avatarColor';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export default function PostCard({ post, onReactionUpdate = () => {}, onCommentAdded = () => {}, onPostDeleted = () => {} }) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -86,7 +88,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
   };
 
   return (
-    <Card radius="xl" p="xl" withBorder style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
+    <Card radius="xl" p={{ base: 'md', sm: 'xl' }} withBorder style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
       <Group justify="space-between" mb="md" align="flex-start" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${post.user?.id}`)}>
         <Group wrap="nowrap">
           <Avatar radius="xl" src={post.user?.avatarUrl} color={avatarColorFor(post.user?.id)} variant="filled">
@@ -187,7 +189,7 @@ export default function PostCard({ post, onReactionUpdate = () => {}, onCommentA
         </Box>
       )}
 
-      <Modal opened={joinModalOpened} onClose={() => setJoinModalOpened(false)} title="Join Circle" centered radius="md">
+      <Modal opened={joinModalOpened} onClose={() => setJoinModalOpened(false)} title="Join Circle" centered radius="md" fullScreen={isMobile}>
         <Text size="sm" mb="xl">
           You need to be a member of <b>{post.circle?.name}</b> to interact with this post.
         </Text>

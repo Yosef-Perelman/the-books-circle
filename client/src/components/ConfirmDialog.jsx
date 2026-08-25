@@ -1,4 +1,5 @@
 import { Modal, Text, Group, Button } from '@mantine/core';
+import { useIsMobile } from '../lib/useIsMobile';
 
 export default function ConfirmDialog({
   opened,
@@ -11,8 +12,9 @@ export default function ConfirmDialog({
   danger = false,
   loading = false
 }) {
+  const isMobile = useIsMobile();
   return (
-    <Modal opened={opened} onClose={onClose} title={title} centered radius="lg">
+    <Modal opened={opened} onClose={onClose} title={title} centered radius="lg" fullScreen={isMobile}>
       {message && <Text c="dimmed" mb="xl">{message}</Text>}
       <Group justify="flex-end" gap="sm">
         <Button variant="subtle" color="gray" onClick={onClose} disabled={loading}>

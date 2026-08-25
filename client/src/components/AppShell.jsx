@@ -1,5 +1,5 @@
 import { AppShell, Group, Title, Avatar, Text, UnstyledButton, Box, Button, TextInput, Burger, Drawer, Stack, Loader } from '@mantine/core';
-import { useDisclosure, useMediaQuery } from '@mantine/hooks';
+import { useDisclosure } from '@mantine/hooks';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useCallback, useMemo } from 'react';
 import { IconSearch } from '@tabler/icons-react';
@@ -7,6 +7,7 @@ import { notifications } from '@mantine/notifications';
 import { useAuthStore } from '../stores/authStore';
 import AddBookModal from '../features/books/AddBookModal';
 import { palette } from '../theme';
+import { useIsMobile } from '../lib/useIsMobile';
 
 // Exact match for Home (it's also the fallback for '/'); prefix match for
 // everything else so nested routes like /profile/:id or /book/:id still
@@ -27,7 +28,7 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] = useDisclosure(false);
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useIsMobile();
 
   // Signals to any page under this Outlet that a book was just added, so a
   // circle feed or the profile shelf can silently refetch. AddBookModal lives
@@ -71,13 +72,13 @@ export default function Layout() {
               <Box w={28} h={28} bg="terracotta" style={{ borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Box w={12} h={16} bg="white" style={{ borderRadius: '2px' }} />
               </Box>
-              <Title order={3} c="terracotta" style={{ fontFamily: 'Newsreader, serif', fontSize: isMobile ? '20px' : '24px' }}>
+              <Title visibleFrom="sm" order={3} c="terracotta" style={{ fontFamily: 'Newsreader, serif', fontSize: '24px' }}>
                 The Reading Circles
               </Title>
             </Group>
 
             <Group gap="xl">
-              <TextInput 
+              <TextInput
                 placeholder="Search books, authors, ISBN..."
                 radius="xl"
                 size="sm"
@@ -85,7 +86,7 @@ export default function Layout() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearch}
                 leftSection={<IconSearch size={16} />}
-                style={{ width: isMobile ? '120px' : '250px' }}
+                w={{ base: 120, sm: 250 }}
               />
               <Button radius="xl" color="terracotta" onClick={() => setAddBookOpened(true)} visibleFrom="sm">
                 Add a Book
@@ -142,7 +143,7 @@ export default function Layout() {
           <Outlet context={outletContext} />
         </AppShell.Main>
       </AppShell>
-      <AddBookModal opened={addBookOpened} onClose={() => setAddBookOpened(false)} onBookAdded={notifyBookActivity} />
+      <AddBookModal opened={addBookOpened} onClose={() => setAddBookOpened(false)} onBookAdded={notifyBookActivity} fullScreen={isMobile} />
     </>
   );
 }

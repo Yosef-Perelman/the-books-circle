@@ -97,7 +97,7 @@ export default function BookDetailsPage() {
         <Grid.Col span={{ base: 12, md: 8 }}>
           <Stack gap="md">
             <div>
-              <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '40px' }} c="forest">
+              <Title order={1} fz={{ base: '1.75rem', sm: '40px' }} style={{ fontFamily: 'Newsreader, serif' }} c="forest">
                 {book.title}
               </Title>
               {book.authorId ? (

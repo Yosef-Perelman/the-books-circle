@@ -144,16 +144,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60} pb={60}>
+    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={{ base: 24, sm: 60 }} pb={{ base: 24, sm: 60 }}>
       <Container size="md">
-        
+
         {/* Profile Header */}
         <Group align="flex-start" gap="xl" mb={60} justify="center">
-          <Avatar color="terracotta" size={100} radius={100} src={user?.avatarUrl || ''} style={{ fontSize: '2.5rem' }}>
+          <Avatar color="terracotta" size={{ base: 72, sm: 100 }} radius={100} src={user?.avatarUrl || ''} style={{ fontSize: '2.5rem' }}>
             {user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
           </Avatar>
           <Stack gap={4}>
-            <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '2.5rem' }}>
+            <Title order={1} fz={{ base: '1.75rem', sm: '2.5rem' }} style={{ fontFamily: 'Newsreader, serif' }}>
               {user?.displayName || 'User'}
             </Title>
             <Text c="muted" size="lg">{isOwnProfile ? 'My Profile' : 'Profile'}</Text>
@@ -167,69 +167,74 @@ export default function ProfilePage() {
         <Tabs value={activeTab} onChange={setActiveTab} color="terracotta" variant="unstyled" classNames={{
           tab: 'custom-tab',
         }}>
-          <Tabs.List style={{ borderBottom: '1px solid #EADFC9', paddingBottom: '0' }} mb="xl">
-            <Tabs.Tab 
-              value="want" 
-              px="xl" 
+          <Tabs.List style={{ borderBottom: '1px solid #EADFC9', paddingBottom: '0', flexWrap: 'nowrap', overflowX: 'auto' }} mb="xl">
+            <Tabs.Tab
+              value="want"
+              px={{ base: 'sm', sm: 'xl' }}
               py="md"
-              style={(theme) => ({ 
-                fontSize: '1.1rem',
+              fz={{ base: 'sm', sm: '1.1rem' }}
+              style={{
                 color: activeTab === 'want' ? '#C96F4B' : '#8A7E70',
                 fontWeight: activeTab === 'want' ? 600 : 400,
-                borderBottom: activeTab === 'want' ? '3px solid #C96F4B' : '3px solid transparent'
-              })}
+                borderBottom: activeTab === 'want' ? '3px solid #C96F4B' : '3px solid transparent',
+                whiteSpace: 'nowrap'
+              }}
             >
               Want to read
             </Tabs.Tab>
-            <Tabs.Tab 
-              value="reading" 
-              px="xl" 
+            <Tabs.Tab
+              value="reading"
+              px={{ base: 'sm', sm: 'xl' }}
               py="md"
-              style={(theme) => ({ 
-                fontSize: '1.1rem',
+              fz={{ base: 'sm', sm: '1.1rem' }}
+              style={{
                 color: activeTab === 'reading' ? '#C96F4B' : '#8A7E70',
                 fontWeight: activeTab === 'reading' ? 600 : 400,
-                borderBottom: activeTab === 'reading' ? '3px solid #C96F4B' : '3px solid transparent'
-              })}
+                borderBottom: activeTab === 'reading' ? '3px solid #C96F4B' : '3px solid transparent',
+                whiteSpace: 'nowrap'
+              }}
             >
               Reading
             </Tabs.Tab>
-            <Tabs.Tab 
-              value="finished" 
-              px="xl" 
+            <Tabs.Tab
+              value="finished"
+              px={{ base: 'sm', sm: 'xl' }}
               py="md"
-              style={(theme) => ({ 
-                fontSize: '1.1rem',
+              fz={{ base: 'sm', sm: '1.1rem' }}
+              style={{
                 color: activeTab === 'finished' ? '#C96F4B' : '#8A7E70',
                 fontWeight: activeTab === 'finished' ? 600 : 400,
-                borderBottom: activeTab === 'finished' ? '3px solid #C96F4B' : '3px solid transparent'
-              })}
+                borderBottom: activeTab === 'finished' ? '3px solid #C96F4B' : '3px solid transparent',
+                whiteSpace: 'nowrap'
+              }}
             >
               Finished
             </Tabs.Tab>
-            <Tabs.Tab 
-              value="posts" 
-              px="xl" 
+            <Tabs.Tab
+              value="posts"
+              px={{ base: 'sm', sm: 'xl' }}
               py="md"
-              style={(theme) => ({ 
-                fontSize: '1.1rem',
+              fz={{ base: 'sm', sm: '1.1rem' }}
+              style={{
                 color: activeTab === 'posts' ? '#C96F4B' : '#8A7E70',
                 fontWeight: activeTab === 'posts' ? 600 : 400,
-                borderBottom: activeTab === 'posts' ? '3px solid #C96F4B' : '3px solid transparent'
-              })}
+                borderBottom: activeTab === 'posts' ? '3px solid #C96F4B' : '3px solid transparent',
+                whiteSpace: 'nowrap'
+              }}
             >
               Reviews
             </Tabs.Tab>
-            <Tabs.Tab 
-              value="circles" 
-              px="xl" 
+            <Tabs.Tab
+              value="circles"
+              px={{ base: 'sm', sm: 'xl' }}
               py="md"
-              style={(theme) => ({ 
-                fontSize: '1.1rem',
+              fz={{ base: 'sm', sm: '1.1rem' }}
+              style={{
                 color: activeTab === 'circles' ? '#C96F4B' : '#8A7E70',
                 fontWeight: activeTab === 'circles' ? 600 : 400,
-                borderBottom: activeTab === 'circles' ? '3px solid #C96F4B' : '3px solid transparent'
-              })}
+                borderBottom: activeTab === 'circles' ? '3px solid #C96F4B' : '3px solid transparent',
+                whiteSpace: 'nowrap'
+              }}
             >
               Circles
             </Tabs.Tab>

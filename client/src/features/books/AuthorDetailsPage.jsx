@@ -78,7 +78,7 @@ export default function AuthorDetailsPage() {
 
         <Grid.Col span={{ base: 12, md: 8, lg: 9 }}>
           <Stack gap="md">
-            <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '3rem' }} c="forest">
+            <Title order={1} fz={{ base: '2rem', sm: '3rem' }} style={{ fontFamily: 'Newsreader, serif' }} c="forest">
               {author.name}
             </Title>
             

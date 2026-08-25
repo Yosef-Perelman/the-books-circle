@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useIntersection } from '@mantine/hooks';
-import { Box, Group, Title, Text, Avatar, Stack, Button, TextInput, Loader, Center, Modal, Tabs as MantineTabs } from '@mantine/core';
-import { IconPlus, IconLogout, IconUsers } from '@tabler/icons-react';
+import { useIntersection, useDisclosure } from '@mantine/hooks';
+import { Box, Group, Title, Text, Avatar, Stack, Button, TextInput, Loader, Center, Modal, Drawer, Tabs as MantineTabs } from '@mantine/core';
+import { IconPlus, IconLogout, IconUsers, IconUsersGroup } from '@tabler/icons-react';
+import { useIsMobile } from '../../lib/useIsMobile';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { circlesApi } from '../../api/circlesApi';
@@ -34,6 +35,10 @@ export default function FeedPage() {
   const [joinInviteCode, setJoinInviteCode] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [leaveConfirmOpened, setLeaveConfirmOpened] = useState(false);
+
+  const isMobile = useIsMobile();
+  const [circlesDrawerOpened, { open: openCirclesDrawer, close: closeCirclesDrawer }] = useDisclosure(false);
+  const [membersDrawerOpened, { open: openMembersDrawer, close: closeMembersDrawer }] = useDisclosure(false);
 
   const { ref: loadMoreRef, entry } = useIntersection({
     root: null,
@@ -169,58 +174,66 @@ export default function FeedPage() {
     );
   }
 
+  const newCircleButton = (onDone) => (
+    <Button
+      variant="outline"
+      color="terracotta"
+      fullWidth
+      mt="xl"
+      radius="xl"
+      style={{ borderStyle: 'dashed' }}
+      leftSection={<IconPlus size={16} />}
+      onClick={() => { setModalOpened(true); onDone?.(); }}
+    >
+      New circle
+    </Button>
+  );
+
+  const membersFooter = (
+    <>
+      <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
+        {members.length} members · code {activeCircle?.inviteCode || 'N/A'}
+      </Text>
+
+      <Button
+        variant="subtle"
+        color="red"
+        fullWidth
+        mt="md"
+        size="xs"
+        leftSection={<IconLogout size={14} />}
+        onClick={() => setLeaveConfirmOpened(true)}
+      >
+        Leave Circle
+      </Button>
+    </>
+  );
+
   return (
     <Group align="stretch" gap={0} wrap="nowrap" style={{ minHeight: 'calc(100vh - 70px)' }}>
 
-      {/* Left Sidebar: Circles */}
-      <Box w={260} bg="cream" p="xl" style={{ borderRight: '1px solid #EADFC9' }}>
+      {/* Left Sidebar: Circles — desktop only, mobile uses the drawer below */}
+      <Box visibleFrom="sm" w={260} bg="cream" p="xl" style={{ borderRight: '1px solid #EADFC9' }}>
         <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLES</Text>
-
-        <Stack gap="sm">
-          {circles.map(c => (
-            <Group
-              key={c.id}
-              p="sm"
-              wrap="nowrap"
-              onClick={() => setActiveCircle(c)}
-              bg={activeCircle?.id === c.id ? "terracottaTint" : "transparent"}
-              style={{
-                borderRadius: '8px',
-                borderLeft: activeCircle?.id === c.id ? '4px solid #C96F4B' : '4px solid transparent',
-                cursor: 'pointer'
-              }}
-            >
-              <Avatar radius="xl" size="md" color={avatarColorFor(c.id)} variant="filled">
-                {c.name.charAt(0)}
-              </Avatar>
-              <Text
-                fw={activeCircle?.id === c.id ? 600 : 500}
-                c={activeCircle?.id === c.id ? "terracottaDark" : "forest"}
-                style={{ flex: 1, lineHeight: 1.3 }}
-                lineClamp={2}
-              >
-                {c.name}
-              </Text>
-            </Group>
-          ))}
-        </Stack>
-
-        <Button
-          variant="outline"
-          color="terracotta"
-          fullWidth
-          mt="xl"
-          radius="xl"
-          style={{ borderStyle: 'dashed' }}
-          leftSection={<IconPlus size={16} />}
-          onClick={() => setModalOpened(true)}
-        >
-          New circle
-        </Button>
+        <CircleRows circles={circles} activeCircleId={activeCircle?.id} onSelect={setActiveCircle} />
+        {newCircleButton()}
       </Box>
 
       {/* Center Feed */}
-      <Box style={{ flex: 1 }} bg="surface" p={40}>
+      <Box style={{ flex: 1 }} bg="surface" p={{ base: 'md', sm: 40 }}>
+
+        {/* Mobile: buttons to open the circle/member drawers instead of fixed sidebars */}
+        <Group hiddenFrom="sm" gap="sm" mb="md">
+          <Button variant="light" color="forest" radius="xl" size="sm" leftSection={<IconUsersGroup size={16} />} onClick={openCirclesDrawer}>
+            Circles
+          </Button>
+          {activeCircle && (
+            <Button variant="light" color="forest" radius="xl" size="sm" leftSection={<IconUsers size={16} />} onClick={openMembersDrawer}>
+              Members
+            </Button>
+          )}
+        </Group>
+
         <Container size="sm" mx="auto" p={0}>
 
           {!activeCircle && (
@@ -237,7 +250,7 @@ export default function FeedPage() {
                 <EmptyState
                   icon={IconUsers}
                   title="Pick a circle"
-                  message="Choose a circle on the left to see what they're reading."
+                  message="Choose a circle to see what they're reading."
                 />
               )}
             </Center>
@@ -299,41 +312,30 @@ export default function FeedPage() {
         </Container>
       </Box>
 
-      {/* Right Sidebar: Members */}
+      {/* Right Sidebar: Members — desktop only, mobile uses the drawer below */}
       {activeCircle && (
-        <Box w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
+        <Box visibleFrom="sm" w={280} bg="cream" p="xl" style={{ borderLeft: '1px solid #EADFC9' }}>
           <Text c="forest" size="sm" fw={700} lts={1} mb="xl">CIRCLE MEMBERS</Text>
-
-          <Stack gap="md">
-            {members.map(m => (
-              <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
-                <Avatar radius="xl" size="md" src={m.avatarUrl} color={avatarColorFor(m.id)} variant="filled">
-                  {m.name?.charAt(0) || 'M'}
-                </Avatar>
-                <Stack gap={0}>
-                  <Text fw={600} size="sm">{m.name}</Text>
-                  <Text size="xs" c="muted">in {activeCircle.name}</Text>
-                </Stack>
-              </Group>
-            ))}
-          </Stack>
-
-          <Text size="xs" c="muted" mt="xl" pt="xl" style={{ borderTop: '1px solid #EADFC9' }}>
-            {members.length} members · code {activeCircle.inviteCode || 'N/A'}
-          </Text>
-
-          <Button
-            variant="subtle"
-            color="red"
-            fullWidth
-            mt="md"
-            size="xs"
-            leftSection={<IconLogout size={14} />}
-            onClick={() => setLeaveConfirmOpened(true)}
-          >
-            Leave Circle
-          </Button>
+          <MemberRows members={members} circleName={activeCircle.name} navigate={navigate} />
+          {membersFooter}
         </Box>
+      )}
+
+      {/* Mobile drawers */}
+      <Drawer opened={circlesDrawerOpened} onClose={closeCirclesDrawer} position="left" title="Circles" padding="md">
+        <CircleRows
+          circles={circles}
+          activeCircleId={activeCircle?.id}
+          onSelect={(c) => { setActiveCircle(c); closeCirclesDrawer(); }}
+        />
+        {newCircleButton(closeCirclesDrawer)}
+      </Drawer>
+
+      {activeCircle && (
+        <Drawer opened={membersDrawerOpened} onClose={closeMembersDrawer} position="right" title="Circle Members" padding="md">
+          <MemberRows members={members} circleName={activeCircle.name} navigate={navigate} />
+          {membersFooter}
+        </Drawer>
       )}
 
       {/* Modal for Create/Join Circle */}
@@ -343,6 +345,7 @@ export default function FeedPage() {
         title={<Title order={3} component="span" style={{ fontFamily: 'Newsreader, serif' }}>New Circle</Title>}
         centered
         radius="lg"
+        fullScreen={isMobile}
       >
         <MantineTabs value={modalTab} onChange={setModalTab} color="terracotta" mt="sm">
           <MantineTabs.List grow mb="md">
@@ -395,4 +398,56 @@ export default function FeedPage() {
 
 function Container({ children, ...props }) {
   return <Box style={{ maxWidth: 700 }} mx="auto" {...props}>{children}</Box>;
+}
+
+// Shared between the desktop sidebar and the mobile drawer so both stay in sync.
+function CircleRows({ circles, activeCircleId, onSelect }) {
+  return (
+    <Stack gap="sm">
+      {circles.map(c => (
+        <Group
+          key={c.id}
+          p="sm"
+          wrap="nowrap"
+          onClick={() => onSelect(c)}
+          bg={activeCircleId === c.id ? "terracottaTint" : "transparent"}
+          style={{
+            borderRadius: '8px',
+            borderLeft: activeCircleId === c.id ? '4px solid #C96F4B' : '4px solid transparent',
+            cursor: 'pointer'
+          }}
+        >
+          <Avatar radius="xl" size="md" color={avatarColorFor(c.id)} variant="filled">
+            {c.name.charAt(0)}
+          </Avatar>
+          <Text
+            fw={activeCircleId === c.id ? 600 : 500}
+            c={activeCircleId === c.id ? "terracottaDark" : "forest"}
+            style={{ flex: 1, lineHeight: 1.3 }}
+            lineClamp={2}
+          >
+            {c.name}
+          </Text>
+        </Group>
+      ))}
+    </Stack>
+  );
+}
+
+function MemberRows({ members, circleName, navigate }) {
+  return (
+    <Stack gap="md">
+      {members.map(m => (
+        <Group key={m.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${m.id}`)}>
+          <Avatar radius="xl" size="md" src={m.avatarUrl} color={avatarColorFor(m.id)} variant="filled">
+            {m.name?.charAt(0) || 'M'}
+          </Avatar>
+          <Stack gap={0}>
+            <Text fw={600} size="sm">{m.name}</Text>
+            <Text size="xs" c="muted">in {circleName}</Text>
+          </Stack>
+        </Group>
+      ))}
+    </Stack>
+  );
 }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { circlesApi } from '../../api/circlesApi';
 import { avatarColorFor } from '../../lib/avatarColor';
 import { palette } from '../../theme';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 const CATEGORIES = [
   { key: 'books', title: 'Read Books', description: (monthly) => `Books finished${monthly ? ' this month' : ''}` },
@@ -14,6 +15,7 @@ const CATEGORIES = [
 
 export default function LeaderboardPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [circles, setCircles] = useState([]);
   const [activeCircleId, setActiveCircleId] = useState(null);
   const [circlesLoading, setCirclesLoading] = useState(true);
@@ -61,13 +63,13 @@ export default function LeaderboardPage() {
   const activeCircleName = circles.find(c => c.id === activeCircleId)?.name || '';
 
   return (
-    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={60} pb={60}>
+    <Box bg="surface" style={{ minHeight: 'calc(100vh - 70px)' }} pt={{ base: 24, sm: 60 }} pb={{ base: 24, sm: 60 }}>
       <Container size="md">
 
         {/* Header */}
-        <Group justify="space-between" mb={60} align="flex-start">
+        <Group justify="space-between" mb={60} align="flex-start" gap="md">
           <Stack gap={4}>
-            <Title order={1} style={{ fontFamily: 'Newsreader, serif', fontSize: '2.5rem' }}>
+            <Title order={1} fz={{ base: '1.75rem', sm: '2.5rem' }} style={{ fontFamily: 'Newsreader, serif' }}>
               Leaderboard
             </Title>
             {circles.length > 1 ? (
@@ -92,6 +94,7 @@ export default function LeaderboardPage() {
             size="md"
             color="terracotta"
             bg="cream"
+            fullWidth={isMobile}
             styles={{
               label: { fontWeight: 600 },
             }}

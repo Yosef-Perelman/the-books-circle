@@ -4,8 +4,10 @@ import { IconSend, IconSparkles, IconRefresh } from '@tabler/icons-react';
 import { chatApi } from '../../api/chatApi';
 import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../../stores/chatStore';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export default function ChatPage() {
+  const isMobile = useIsMobile();
   const { messages, setMessages, resetChat } = useChatStore();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,21 +92,27 @@ export default function ChatPage() {
                 <Text size="sm" c="dimmed">Your personal assistant for books and social reading.</Text>
               </div>
             </Group>
-            <Button 
-              variant="subtle" 
-              color="gray" 
-              leftSection={<IconRefresh size={16} />} 
-              onClick={resetChat}
-              disabled={loading}
-            >
-              Reset Chat
-            </Button>
+            {isMobile ? (
+              <ActionIcon variant="subtle" color="gray" size="lg" onClick={resetChat} disabled={loading} aria-label="Reset chat">
+                <IconRefresh size={18} />
+              </ActionIcon>
+            ) : (
+              <Button
+                variant="subtle"
+                color="gray"
+                leftSection={<IconRefresh size={16} />}
+                onClick={resetChat}
+                disabled={loading}
+              >
+                Reset Chat
+              </Button>
+            )}
           </Group>
         </Container>
       </Box>
 
       {/* Chat Area */}
-      <ScrollArea style={{ flex: 1 }} p="xl" viewportRef={scrollRef}>
+      <ScrollArea style={{ flex: 1 }} p={{ base: 'md', sm: 'xl' }} viewportRef={scrollRef}>
         <Container size="md">
           <Stack gap="xl">
             {messages.filter(msg => !msg.isHidden && msg.parts.trim() !== '').map((msg, i) => (
@@ -112,13 +120,13 @@ export default function ChatPage() {
                 {msg.role === 'ai' && (
                   <Avatar color="terracotta" radius="xl" size="sm" mt={4}>AI</Avatar>
                 )}
-                <Card 
-                  p="lg" 
-                  radius="lg" 
-                  bg={msg.role === 'user' ? 'terracotta' : 'white'} 
+                <Card
+                  p="lg"
+                  radius="lg"
+                  bg={msg.role === 'user' ? 'terracotta' : 'white'}
                   c={msg.role === 'user' ? 'white' : 'dark'}
+                  maw={{ base: '90%', sm: '80%' }}
                   style={{
-                    maxWidth: '80%',
                     borderBottomRightRadius: msg.role === 'user' ? 4 : undefined,
                     borderBottomLeftRadius: msg.role === 'ai' ? 4 : undefined,
                     border: msg.role === 'ai' ? '1px solid #EADFC9' : 'none',

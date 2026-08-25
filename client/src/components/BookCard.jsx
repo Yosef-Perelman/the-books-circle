@@ -27,7 +27,7 @@ export default function BookCard({
     
     return (
       <Card radius="xl" p="lg" withBorder bg="surface" style={{ borderColor: '#EADFC9', boxShadow: '0 4px 20px rgba(58,50,42,0.03)' }}>
-        <Group justify="space-between" align="center" wrap="nowrap">
+        <Group justify="space-between" align="center" wrap="wrap" gap="sm">
           <Group align="flex-start" wrap="nowrap">
             <BookCover 
               src={coverUrl} 

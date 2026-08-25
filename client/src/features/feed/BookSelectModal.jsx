@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Modal, Tabs, TextInput, Loader, Stack, Group, Avatar, Text, Card, ActionIcon, ScrollArea, Box } from '@mantine/core';
 import { IconSearch, IconBooks, IconCheck } from '@tabler/icons-react';
 import { booksApi } from '../../api/booksApi';
+import { useIsMobile } from '../../lib/useIsMobile';
 
 export default function BookSelectModal({ opened, onClose, onSelectBook }) {
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('my-books');
   const [myBooks, setMyBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +71,7 @@ export default function BookSelectModal({ opened, onClose, onSelectBook }) {
   );
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Select a Book to Review" size="lg" radius="md">
+    <Modal opened={opened} onClose={onClose} title="Select a Book to Review" size="lg" radius="md" fullScreen={isMobile}>
       <Tabs value={activeTab} onChange={setActiveTab} color="terracotta">
         <Tabs.List>
           <Tabs.Tab value="my-books" leftSection={<IconBooks size={16} />}>My Books</Tabs.Tab>
