@@ -11,7 +11,7 @@ auth (server) ──→ auth (client) ──→ protected routes + AppShell
         ↓
 circles (server + client)          ← nothing circle-scoped works without this
         ↓
-add-book: manual ──→ search ──→ scan
+add-book: manual ──→ search
         ↓
 feed (posts appear from add-book)
         ↓
@@ -42,7 +42,7 @@ Everyone builds their own screens against their own endpoints. A owns `api-contr
 ## Day by day
 
 ### Day 1 — foundation
-- [ ] Supabase project, `001_init.sql` applied, `book-scans` bucket created
+- [ ] Supabase project, `001_init.sql` applied
 - [ ] Both `package.json`s, `.env.example`, `env.js` boot validation
 - [ ] Express skeleton: `app.js`, routes index, `errorHandler`, `ApiError`, `asyncHandler`
 - [ ] Google provider enabled in Supabase Auth; `GET /me`, `requireAuth` (validates Supabase-issued token, provisions `public.users` on first call)
@@ -62,14 +62,13 @@ Everyone builds their own screens against their own endpoints. A owns `api-contr
 **Day 2 is done when** two accounts in one circle can each add a book manually and see each other's posts.
 
 ### Day 3 — the differentiator
-- [ ] `gemini.js` — all three functions
+- [ ] `gemini.js` — both functions
 - [ ] `googleBooks.js` + `GET /api/books/search` + Search tab
-- [ ] `storage.js` + `POST /api/books/scan` + Scan tab
 - [ ] Status pills, confirm-reading dialog, ownership check, `started` posts
 - [ ] Interview modal + `POST /review` + article generation + `finished` posts
 - [ ] Likes and comments
 
-**Day 3 is done when** the full loop works: snap a cover → add → start reading → finish → interview → article in the feed. **This is the demo.** If day 3 slips, cut from day 4, not from here.
+**Day 3 is done when** the full loop works: add a book → start reading → finish → interview → article in the feed. **This is the demo.** If day 3 slips, cut from day 4, not from here.
 
 ### Day 4 — the rest of the surface
 - [ ] Profile page, tabs, book rows, read-only pills on others' profiles
@@ -90,28 +89,26 @@ Everyone builds their own screens against their own endpoints. A owns `api-contr
 Under time pressure, drop from the top:
 
 1. Comments (keep likes)
-2. Search tab (keep manual + scan — scan is the wow, manual is the fallback)
-3. Leaderboard streak category (ship three categories)
-4. Monthly/All-time toggle (ship all-time only)
-5. Scan-image downscaling
-6. Multi-circle sidebar polish
+2. Leaderboard streak category (ship three categories)
+3. Monthly/All-time toggle (ship all-time only)
+4. Multi-circle sidebar polish
 
-**Never cut:** the scan flow, the interview, the article, auth, validation, the read-only-pills rule, the responsive pass. Those are either the demo or the grade.
+**Never cut:** the interview, the article, auth, validation, the read-only-pills rule, the responsive pass. Those are either the demo or the grade.
 
 ## Demo script (5 minutes)
 
 1. Log in as a seeded user — feed already has activity. *(One sentence on the problem: nobody logs the books they read.)*
-2. Add a book by **snapping a cover**. Narrate the wait: Gemini reads it, Google Books fills the rest.
+2. Add a book by **search**. Narrate the flow: Google Books fills in the metadata.
 3. Move it to **Reading** — the confirmation appears. Show the new post in the feed.
 4. Mark a book **Finished** → the interview → answer two questions → Post → **the article appears in the feed.** Pause here; this is the moment.
 5. Open another member's profile — their pills are read-only. Mention the server enforces it too.
 6. Leaderboard, toggle Monthly → All-Time.
-7. Close on the architecture: React/Zustand/Mantine · Express MVC validating Google-OAuth sessions via Supabase Auth, Zod, unified errors · Supabase Postgres + Storage · Gemini for vision and text.
+7. Close on the architecture: React/Zustand/Mantine · Express MVC validating Google-OAuth sessions via Supabase Auth, Zod, unified errors · Supabase Postgres · Gemini for text.
 
 Have two browser profiles signed in with different Google accounts as different circle members before you start. Never sign in with a new account live.
 
 ## Known gaps to state before you're asked
 
-Single sign-in path — no fallback if Google OAuth is unreachable · no rate limiting · no tests · no pagination · no realtime (the feed refetches) · orphaned scan images are never cleaned up · one retry on AI failures.
+Single sign-in path — no fallback if Google OAuth is unreachable · no rate limiting · no tests · no pagination · no realtime (the feed refetches) · one retry on AI failures.
 
 Naming a limitation yourself reads as judgment. Being caught by it doesn't.

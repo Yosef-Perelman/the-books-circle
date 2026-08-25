@@ -16,14 +16,14 @@ Every doc is self-contained enough to work from alone. If a doc tells you to loa
 | Register / login / JWT / password / "who am I" | `features/auth.md` |
 | Creating, joining, switching circles; invite codes; members sidebar | `features/circles.md` |
 | The home feed, posts, likes, comments, composer | `features/feed.md` |
-| Add-a-Book modal: snap / search / manual | `features/add-book.md` |
+| Add-a-Book modal: search / manual | `features/add-book.md` |
 | Want-to-read / Reading / Finished pills, confirm dialog, ownership | `features/book-status.md` |
 | The Finished-book AI interview and generated review article | `features/ai-interview.md` |
 | Profile page, tabs, book rows, viewing other members | `features/profile.md` |
 | Leaderboard, ranked categories, monthly vs all-time | `features/leaderboard.md` |
-| Calling Gemini (vision or text), prompts, retries | `integrations/ai-gemini.md` |
+| Calling Gemini (text), prompts, retries | `integrations/ai-gemini.md` |
 | Google Books search / metadata lookup | `integrations/books-api.md` |
-| Uploading scan photos to Supabase Storage | `integrations/storage.md` |
+| Uploading avatar images to Supabase Storage (not yet built) | `integrations/storage.md` |
 | Colors, hex values, Mantine theme | `design/colors.md` |
 | Fonts, sizes, weights, the serif/sans split | `design/fonts.md` |
 | Layout, spacing, radii, shadows, buttons, cards, modals, responsive | `design/ui-patterns.md` |

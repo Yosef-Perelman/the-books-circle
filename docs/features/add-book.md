@@ -1,24 +1,22 @@
 # features/add-book.md
 
-The Add-a-Book modal and its three entry methods. Load with `api-contract.md`; add `integrations/ai-gemini.md` for scan and `integrations/books-api.md` for search.
+The Add-a-Book modal and its two entry methods. Load with `api-contract.md` and `integrations/books-api.md` for search.
 
 ## The point
 
-Friction is the enemy. The three methods are presented in speed order and the fastest one is visually promoted:
+Friction is the enemy. The two methods are presented in speed order:
 
-1. **Snap the cover** — primary. AI reads title/author from a photo.
-2. **Search** — by title or author.
-3. **Enter manually** — full typed form.
+1. **Search** — by title or author.
+2. **Enter manually** — full typed form.
 
 Whichever route is taken, a book lands on the shelf as **`status: 'want'`** and produces an `added` feed post. No exceptions.
 
 ## Modal structure
 
-Title `Add a Book`, subtitle `How would you like to add it?`, then three selectable tiles (`design/ui-patterns.md` → "Selectable tile"):
+Title `Add a Book`, subtitle `How would you like to add it?`, then two selectable tiles (`design/ui-patterns.md` → "Selectable tile"):
 
 | Tile | Icon | Subtitle | Styling |
 |---|---|---|---|
-| Snap the cover | camera | "Fastest — AI reads the title and author for you" | promoted: `terracottaTint` bg, `terracotta` border, `AI` badge top-right |
 | Search | magnifier | "Find it by title or author" | default |
 | Enter manually | pencil | "Type in the details yourself" | default |
 
@@ -26,37 +24,7 @@ Selecting a tile expands its panel below the tiles. The tiles stay visible so th
 
 Modal max-width 560, full-screen below 768px.
 
-## Method 1 — Snap the cover
-
-**Client**
-
-- `@mantine/dropzone` accepting `image/*`, max 5MB. On mobile, also render a plain `<input type="file" accept="image/*" capture="environment">` so the camera opens directly.
-- Show a local preview immediately (`URL.createObjectURL`).
-- POST as `multipart/form-data`, field `image`, to `/api/books/scan`.
-- **The wait is 3–6 seconds.** Show explicit staged copy, not a bare spinner: "Uploading…" → "Reading the cover…" → "Looking up the book…". This is the app's signature moment; make it feel deliberate.
-
-**Server — `POST /api/books/scan`**
-
-```
-multer (memory, 5MB, image/* only)
-  → upload buffer to Supabase Storage bucket `book-scans`   (integrations/storage.md)
-  → Gemini vision: image → { title, author, confidence }    (integrations/ai-gemini.md)
-  → Google Books lookup on "title author"                   (integrations/books-api.md)
-  → merge: Gemini wins on title/author; Books API fills genre, pageCount, coverUrl, isbn
-  → 200 { candidate, scanUrl, confidence }
-```
-
-Nothing is saved to `books` or `user_books` here. The scan endpoint only *identifies*.
-
-**Result handling**
-
-- `confidence: 'high'` and a Books API match → render the `DETECTED` card: cover, title, author, `Fiction · 304 pages`, and the three status pills with `Want to read` preselected. Primary `Add to shelf`.
-- `confidence: 'low'`, or no Books API match → render the **manual form pre-filled** with whatever Gemini read, plus a `muted` note: "We weren't sure — check the details before adding." Never silently save a wrong guess.
-- Gemini read nothing → `422`, toast "We couldn't read that cover. Try better lighting, or search instead." and switch the user to the Search tab.
-
-The detected card always allows editing before adding — an `Edit details` ghost link that swaps to the pre-filled manual form.
-
-## Method 2 — Search
+## Method 1 — Search
 
 Input with a `muted` magnifier, debounced 400ms, minimum 2 characters. `GET /api/books/search?q=&limit=10`.
 
@@ -66,7 +34,7 @@ Empty results → inline `muted` line: "No matches. Try a different spelling, or
 
 Search hits Google Books through the server — the API key stays server-side and we can normalise the messy response shape in one place.
 
-## Method 3 — Enter manually
+## Method 2 — Enter manually
 
 This is where the data-validation requirement is most visible. Build the validation properly here.
 
@@ -94,7 +62,7 @@ validate(createUserBookSchema)
   → 201 { userBook }
 ```
 
-`source` is `'scan' | 'search' | 'manual'` and is required — it's cheap analytics and it proves in the demo that all three paths work.
+`source` is `'search' | 'manual'` and is required — it's cheap analytics and it proves in the demo that both paths work.
 
 `circleId` comes from the client's active circle and is checked with `requireCircleMember`.
 
@@ -111,11 +79,9 @@ Moving the book to `reading` or `finished` is a separate action, taken afterward
 ## Rules that are easy to get wrong
 
 - Every book starts as `want`, whatever the entry method.
-- The scan endpoint saves nothing; only `POST /api/user-books` writes.
 - Duplicates are a friendly 409, never a 500.
-- The scan image goes to Supabase Storage (external media storage is a course requirement) — books-API cover art stays as an external URL and is **not** re-hosted.
-- Gemini's title/author beat the Books API's; the Books API's metadata beats Gemini's guesses.
+- Books-API cover art stays as an external URL and is **not** re-hosted.
 
 ## Out of scope
 
-Barcode/ISBN scanning · bulk import · Goodreads import · editing a book's catalog metadata after adding · removing a book from the shelf.
+Cover scanning · barcode/ISBN scanning · bulk import · Goodreads import · editing a book's catalog metadata after adding · removing a book from the shelf.

@@ -4,7 +4,7 @@ Agent operating instructions. Read this first, every session. Keep it in context
 
 ## What this project is
 
-A social reading-tracker web app. You read inside a small private circle of friends. Adding a book is a photo snap. Finishing a book triggers an AI interview that becomes a newspaper-style review article, auto-posted to the circle feed.
+A social reading-tracker web app. You read inside a small private circle of friends. Finishing a book triggers an AI interview that becomes a newspaper-style review article, auto-posted to the circle feed.
 
 Bootcamp final project — 5 days, 3 people. Ship working over perfect.
 
@@ -28,8 +28,8 @@ Workflow for every task:
 | Client | React 18 + Vite, React Router, Zustand, Mantine |
 | Server | Express (MVC), Zod validation, Google sign-in via Supabase Auth (server validates the Supabase-issued token) |
 | Database | Supabase Postgres, accessed via `@supabase/supabase-js` (service-role key, server-side only) |
-| Storage | Supabase Storage bucket `book-scans` |
-| AI | **Google Gemini** — one SDK for vision + text |
+| Storage | Supabase Storage bucket `avatars` (planned, not yet built) |
+| AI | **Google Gemini** — text (interview questions, review article) |
 | Books metadata | Google Books API |
 | Deploy | Client → Vercel · Server → Render · DB/Storage → Supabase |
 

@@ -112,7 +112,6 @@ Used by the Add-a-Book method picker. Full-width row: 44px rounded-square icon b
 
 - Default: `bg surface`, 1px `line`.
 - Recommended/selected: `bg terracottaTint`, 1.5px `terracotta` border, title `terracottaDark`, icon box `surface`.
-- The AI badge sits top-right: `bg forest`, `surface` text, 11px 700, radius 999, padding 3×10.
 
 ### Book cover
 Aspect 2:3, radius 8, shadow `sm`. Sizes: 40×60 in a lightweight feed post, 64×96 in a finished post or profile row, 88×132 in the interview modal.

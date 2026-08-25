@@ -164,7 +164,6 @@ Only for **likes** — the interaction is too frequent to await. Flip `likedByMe
 
 - Page load → Mantine `<Skeleton>` matching the real layout (3 skeleton post cards, 4 skeleton leaderboard cards). Not a centered spinner.
 - Button action → `loading` prop on the Mantine button.
-- The scan upload can take 3–6s → show explicit progress copy ("Reading the cover…"), not just a spinner.
 
 ## Responsive strategy
 

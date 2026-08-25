@@ -106,16 +106,6 @@ Proxy to Google Books. Returns **candidates**, nothing is saved.
 { "data": { "results": [ { "title","author","genre","pageCount","coverUrl","isbn" } ] } }
 ```
 
-### `POST /api/books/scan`
-`multipart/form-data`, field `image`, ≤5MB, `image/*` only.
-```jsonc
-// 200
-{ "data": { "candidate": { "title","author","genre","pageCount","coverUrl","isbn" },
-            "scanUrl": "https://.../book-scans/uuid.jpg",
-            "confidence": "high" | "low" } }
-```
-`confidence: "low"` → client shows an editable form pre-filled with what Gemini read instead of a one-tap confirm. 422 if no text could be read.
-
 ### `POST /api/user-books`
 Adds to the caller's shelf. Always lands as `status: 'want'` and emits an `added` feed post.
 ```jsonc

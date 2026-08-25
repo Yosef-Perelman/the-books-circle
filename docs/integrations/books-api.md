@@ -1,13 +1,10 @@
 # integrations/books-api.md
 
-Google Books — metadata lookup for the search and scan flows. Load with `features/add-book.md`.
+Google Books — metadata lookup for the search flow. Load with `features/add-book.md`.
 
 ## What it's for
 
-Turning a title (typed, or read off a cover by Gemini) into real metadata: author, genre, page count, cover art, ISBN. Two uses:
-
-1. **Search flow** — user types a query, we show candidates.
-2. **Scan flow** — Gemini gives us title + author, we look them up to fill in the rest.
+Turning a typed title into real metadata: author, genre, page count, cover art, ISBN — the user types a query, we show candidates.
 
 Everything lives in `server/src/integrations/googleBooks.js`. The client never calls Google directly — the key stays server-side and the messy response shape gets normalised in exactly one place.
 
@@ -25,10 +22,8 @@ Query syntax worth knowing:
 | Use | Query |
 |---|---|
 | Free search | `q=the hobbit` |
-| Title + author (scan flow) | `q=intitle:"The Hobbit"+inauthor:"Tolkien"` |
+| Title + author | `q=intitle:"The Hobbit"+inauthor:"Tolkien"` |
 | ISBN | `q=isbn:9780547928227` |
-
-For the scan flow, try the qualified `intitle`/`inauthor` query first; if it returns nothing, retry as a plain free-text query. Publishers list authors inconsistently and the strict query misses often.
 
 ## Normalisation
 
@@ -77,12 +72,9 @@ Consider mapping to a short canonical list (Fiction, Non-fiction, Fantasy, Sci-F
 
 | Case | Behaviour |
 |---|---|
-| Network error / timeout (8s) | Search: `502` "Book search is unavailable right now. You can enter the book manually." Scan: **continue** with Gemini's title/author only |
+| Network error / timeout (8s) | `502` "Book search is unavailable right now. You can enter the book manually." |
 | 429 | `429 RATE_LIMITED` "Too many searches. Please wait a moment." |
-| Zero results, search flow | `200` with `results: []` — the client shows "No matches" plus a manual-entry link. Not an error. |
-| Zero results, scan flow | Return the candidate with just title/author from Gemini; client pre-fills the manual form |
-
-**The scan flow must never fail because Google Books failed.** Gemini already gave us a title and author — that's enough to add a book. Missing metadata is a degraded result, not an error.
+| Zero results | `200` with `results: []` — the client shows "No matches" plus a manual-entry link. Not an error. |
 
 ## Caching
 
@@ -96,9 +88,8 @@ Do debounce the search input 400ms client-side and require ≥2 characters, whic
 |---|---|
 | title, author, genre, pageCount, isbn | Copied into our `books` row |
 | coverUrl | **Stored as an external URL.** Not re-hosted. |
-| user's scan photo | Uploaded to **Supabase Storage** (`integrations/storage.md`) |
 
-The course's external-media-storage requirement is satisfied by the scan uploads. Re-hosting publisher cover art would be needless work and a licensing question nobody asked for.
+The course's external-media-storage requirement is intended to be satisfied by user avatar uploads (`integrations/storage.md`, not yet built). Re-hosting publisher cover art would be needless work and a licensing question nobody asked for.
 
 ## Out of scope
 

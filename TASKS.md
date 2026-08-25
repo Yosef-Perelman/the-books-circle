@@ -85,7 +85,7 @@ Agree on the `Post` and `UserBook` JSON shapes from `docs/api-contract.md` befor
 ## Cut / deferred
 
 - **Comments** — instructor approved deferring: *"אפשר להשאיר את הפיצ'ר של תגובות לשלב ב', ולהתחיל רק עם לייקים"* (note 8). Likes only.
-- **Photo scan** (note 14, *"אם זה אפשרי"*) — stretch. Needs `multer` + `gemini.js` + `storage.js`, all missing. Only after Stage 3 is green.
+- **Photo scan** (note 14, *"אם זה אפשרי"*) — removed. Was built (multer + Gemini vision + `/api/books/scan`), then torn out entirely; see the add-book flow's search/manual methods instead.
 - **Reading-streak category** — note 18 names only 3 as certain.
 - **Circle images** — note 21 says the name is required, image optional.
 

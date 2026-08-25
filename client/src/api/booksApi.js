@@ -22,11 +22,6 @@ export const booksApi = {
   analyzeBook: async (id) => {
     return await apiClient(`/books/${encodeURIComponent(id)}/analyze`);
   },
-  scanBookCover: async (file) => {
-    const form = new FormData();
-    form.append('image', file);
-    return await apiClient('/books/scan', { method: 'POST', body: form });
-  },
   addUserBook: async (data) => {
     return await apiClient('/user-books', {
       method: 'POST',

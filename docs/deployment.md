@@ -85,7 +85,6 @@ Same project as development. A 5-day build doesn't need separate environments, a
 Confirm before the demo:
 
 - [ ] `001_init.sql` applied
-- [ ] `book-scans` bucket exists and is public
 - [ ] Seed data loaded (`database.md`)
 - [ ] The service-role key in Render matches the project
 - [ ] Google provider enabled in Supabase Auth, with a Google Cloud OAuth client whose redirect URI is Supabase's callback URL
@@ -97,11 +96,11 @@ Confirm before the demo:
 - [ ] Sign in with Google on the deployed URL (a second Google account or incognito, since you never register — you sign in)
 - [ ] Refresh a deep link (`/leaderboard`) — no 404, still logged in
 - [ ] Create a circle, join it from a second browser profile
-- [ ] Add a book manually, then by search, then **by scanning a photo from a phone**
+- [ ] Add a book manually, then by search
 - [ ] Finish a book, complete the interview, see the article in the feed
 - [ ] Like and comment from the second account
 - [ ] Leaderboard shows non-trivial numbers in both periods
-- [ ] Open the deployed site on a real phone — the scan flow especially
+- [ ] Open the deployed site on a real phone
 - [ ] Check the browser console: no CORS errors, no mixed-content warnings on cover images (`books-api.md` → https rewrite)
 
 ## Failure table
@@ -114,7 +113,6 @@ Confirm before the demo:
 | Google sign-in redirects to an error page in production | Production URL missing from Supabase Auth → Redirect URLs, or the Google Cloud OAuth client's redirect URI doesn't match Supabase's callback URL exactly |
 | First request takes ~50s | Render free tier cold start — warm it before demoing |
 | Cover images blank in production | `http://` Google URLs blocked as mixed content |
-| Scan works locally, 500s in production | Bucket missing, or service-role key not set on Render |
 | Server crashes on boot | `env.js` validation caught a missing variable — read the log, it names the key |
 
 ## Security before you ship

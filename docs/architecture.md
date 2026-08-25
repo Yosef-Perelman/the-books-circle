@@ -15,13 +15,12 @@ Express server (Render)  ── MVC ──  routes → middleware → controller
    │                    │                └──► @supabase/supabase-js  (service-role key)
    │                    │                          │
    │                    │                          ├──► Postgres (Supabase)
-   │                    │                          ├──► Storage bucket `book-scans`
    │                    │                          └──► Auth API — validate tokens (requireAuth)
-   │                    ├──► Google Gemini API   (vision + text)
+   │                    ├──► Google Gemini API   (text)
    │                    └──► Google Books API    (metadata)
 ```
 
-**The client only ever talks to Supabase Auth directly, and nothing else.** Sign-in and session handling go straight from the browser to Supabase (via the public anon key — see `features/auth.md`). Postgres, Storage, Gemini, and Google Books all stay behind Express, proxied so the service-role key and other API keys stay server-side and so validation/authorization is unavoidable.
+**The client only ever talks to Supabase Auth directly, and nothing else.** Sign-in and session handling go straight from the browser to Supabase (via the public anon key — see `features/auth.md`). Postgres, Gemini, and Google Books all stay behind Express, proxied so the service-role key and other API keys stay server-side and so validation/authorization is unavoidable.
 
 ## Folder tree
 
@@ -63,7 +62,7 @@ the-books-circle/
 │       │   ├── auth/                # WelcomePage, AuthPage, LoginForm, RegisterForm
 │       │   ├── circles/             # CirclesSidebar, MembersSidebar, JoinCreateCircleModal
 │       │   ├── feed/                # FeedPage, PostComposer, PostCard, CommentList
-│       │   ├── books/               # AddBookModal, ScanTab, SearchTab, ManualTab
+│       │   ├── books/               # AddBookModal, SearchTab, ManualTab
 │       │   ├── interview/           # InterviewModal, QuestionBubble, AnswerBox
 │       │   ├── profile/             # ProfilePage, BookRow, StatusTabs
 │       │   └── leaderboard/         # LeaderboardPage, CategoryCard, RankBadge
@@ -111,7 +110,6 @@ the-books-circle/
         │   ├── requireAuth.js       # verifies JWT → req.user
         │   ├── requireCircleMember.js
         │   ├── validate.js          # validate(schema, 'body'|'query'|'params')
-        │   ├── upload.js            # multer memoryStorage, 5MB, images only
         │   └── errorHandler.js      # LAST. one response shape.
         ├── schemas/                 # Zod schemas, one file per resource — none for auth (no auth.schema.js): sign-in is unvalidated Supabase input, not a client-submitted form
         └── utils/
@@ -154,7 +152,7 @@ POST /api/user-books
 **client**
 ```
 react react-dom react-router-dom
-@mantine/core @mantine/hooks @mantine/notifications @mantine/dropzone
+@mantine/core @mantine/hooks @mantine/notifications
 zustand
 @supabase/supabase-js         # Auth only — sign-in + session, never DB/Storage
 @tabler/icons-react
@@ -166,7 +164,6 @@ Dev: `vite @vitejs/plugin-react`
 express cors dotenv
 @supabase/supabase-js
 zod
-multer
 @google/generative-ai
 ```
 No `bcrypt`, no `jsonwebtoken` — there's no local password hash and no locally-signed token; `requireAuth` validates the Supabase-issued token via a live `supabase.auth.getUser` call instead.
@@ -175,9 +172,7 @@ Dev: `nodemon`
 
 Do not add anything else without flagging it. No axios (use `fetch`), no lodash, no moment/dayjs (write the two formatters we need by hand), no ORM.
 
-## Data flow of the three interesting operations
-
-**Add by scan** — client uploads image → `POST /api/books/scan` (multer) → upload to Storage → Gemini vision returns `{title, author}` → Google Books lookup fills genre/pages/cover → response is a *candidate*, nothing saved yet → user confirms → `POST /api/user-books`.
+## Data flow of the two interesting operations
 
 **Finish a book** — client asks `GET /api/user-books/:id/interview/questions` → Gemini generates 2–3 questions → user answers client-side (no round trips) → `POST /api/user-books/:id/review` with the full Q&A → server generates the article, inserts `reviews`, flips `user_books.status = 'finished'` + `finished_at`, inserts a `finished` feed post — **all three or none**. See `features/ai-interview.md`.
 

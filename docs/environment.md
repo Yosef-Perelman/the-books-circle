@@ -12,12 +12,11 @@ CLIENT_URL=http://localhost:5173
 # Supabase — Project Settings → API
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...        # SERVER ONLY. Never ship to the client.
-SUPABASE_STORAGE_BUCKET=book-scans
+SUPABASE_STORAGE_BUCKET=avatars         # not yet used — see integrations/storage.md
 
 # Google Gemini — https://aistudio.google.com/apikey
 GEMINI_API_KEY=...
 GEMINI_TEXT_MODEL=gemini-2.0-flash
-GEMINI_VISION_MODEL=gemini-2.0-flash
 
 # Google Books — optional; the API works unkeyed at a lower quota
 GOOGLE_BOOKS_API_KEY=
@@ -52,10 +51,9 @@ const schema = z.object({
   CLIENT_URL: z.string().url(),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
-  SUPABASE_STORAGE_BUCKET: z.string().default('book-scans'),
+  SUPABASE_STORAGE_BUCKET: z.string().default('avatars'),
   GEMINI_API_KEY: z.string().min(10),
   GEMINI_TEXT_MODEL: z.string().default('gemini-2.0-flash'),
-  GEMINI_VISION_MODEL: z.string().default('gemini-2.0-flash'),
   GOOGLE_BOOKS_API_KEY: z.string().optional(),
 });
 
@@ -73,7 +71,7 @@ Nothing else in the codebase reads `process.env`. Import `env` instead.
 
 1. Create a project at supabase.com. Save the DB password.
 2. **SQL Editor** → paste `server/migrations/001_init.sql` (the schema in `database.md`) → Run.
-3. **Storage** → New bucket → name `book-scans`, **Public** (cover scans are not sensitive and public URLs keep the client simple).
+3. Storage bucket setup is deferred — see `integrations/storage.md` for the planned `avatars` bucket. Nothing currently needs it.
 4. **Project Settings → API** → copy the project URL and the `service_role` key into `server/.env`; copy the project URL and the `anon` key into `client/.env`.
 5. **Authentication → Providers** → enable **Google**. You'll need a Google Cloud OAuth 2.0 Client ID (Web application) — set its authorized redirect URI to the callback URL Supabase shows on this page (`https://<project-ref>.supabase.co/auth/v1/callback`), then paste that Client ID + Secret into the Supabase provider settings.
 6. **Authentication → URL Configuration** → add `http://localhost:5173` (and later the Vercel URL) to **Redirect URLs**, or `signInWithOAuth`'s `redirectTo` will be rejected.
@@ -81,7 +79,7 @@ Nothing else in the codebase reads `process.env`. Import `env` instead.
 ## Google Gemini setup
 
 1. Get a key at aistudio.google.com/apikey (free tier is enough for this project).
-2. Verify the model name is current before relying on it — model IDs change. `gemini-2.0-flash` handles both vision and text.
+2. Verify the model name is current before relying on it — model IDs change.
 
 ## Local run
 
@@ -116,6 +114,5 @@ Development allows `http://localhost:5173`. Production allows exactly the deploy
 | `GET /api/auth/me` 404s right after first sign-in | `public.users` row was never provisioned — see `features/auth.md` |
 | CORS error in console | `CLIENT_URL` doesn't exactly match the browser origin (port, trailing slash) |
 | Supabase returns empty arrays with no error | Using the anon key instead of service-role — RLS is silently filtering everything |
-| Scan endpoint 500s | Bucket doesn't exist, or the image exceeds the 5MB multer limit |
 | Gemini 404 on the model | Model ID is stale; check the current name |
 | Book insert fails with 23505 | The `unique (user_id, book_id)` constraint — return a 409, not a 500 |

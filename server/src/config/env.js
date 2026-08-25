@@ -7,10 +7,9 @@ const schema = z.object({
   CLIENT_URL: z.string().url(),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
-  SUPABASE_STORAGE_BUCKET: z.string().default('book-scans'),
+  SUPABASE_STORAGE_BUCKET: z.string().default('avatars'),
   GEMINI_API_KEY: z.string().min(10).optional(),
   GEMINI_TEXT_MODEL: z.string().default('gemini-2.0-flash'),
-  GEMINI_VISION_MODEL: z.string().default('gemini-2.0-flash'),
   GOOGLE_BOOKS_API_KEY: z.string().optional(),
 });
 

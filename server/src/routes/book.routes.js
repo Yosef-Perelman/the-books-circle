@@ -1,7 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { searchBooks, getExplore, getBookDetails, searchAuthorsCtrl, getAuthorDetailsCtrl, getBookReviewsCtrl, analyzeBookRecommendationCtrl, scanBookCoverCtrl } from '../controllers/book.controller.js';
-import { upload } from '../middleware/upload.js';
+import { searchBooks, getExplore, getBookDetails, searchAuthorsCtrl, getAuthorDetailsCtrl, getBookReviewsCtrl, analyzeBookRecommendationCtrl } from '../controllers/book.controller.js';
 
 const router = express.Router();
 
@@ -9,7 +8,6 @@ router.use(requireAuth);
 
 router.get('/explore', getExplore);
 router.get('/search', searchBooks);
-router.post('/scan', upload.single('image'), scanBookCoverCtrl);
 router.get('/authors/search', searchAuthorsCtrl);
 router.get('/authors/:id', getAuthorDetailsCtrl);
 router.get('/:id', getBookDetails);

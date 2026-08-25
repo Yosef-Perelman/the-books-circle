@@ -149,7 +149,7 @@ Delete commented-out code. Do not write JSDoc blocks for two-line functions.
 - Branches: `feat/<area>-<thing>`, `fix/<area>-<thing>`.
 - Commits, imperative and scoped: `feat(feed): add like toggle`, `fix(auth): reject expired token`.
 - Never commit `.env`. Commit `.env.example` with every key present and empty.
-- Never commit `node_modules`, `dist`, or scan images.
+- Never commit `node_modules` or `dist`.
 
 ## Things we deliberately do not do
 

@@ -12,7 +12,7 @@ The palette and how to apply it. Load for any UI work.
 | `surface` | `#FFFDF8` | Cards, inputs, navbar, modals |
 | `terracotta` | `#C96F4B` | Primary actions, active nav, wordmark, stars, likes |
 | `terracottaDark` | `#B25E3C` | Terracotta text sitting on a terracotta tint |
-| `terracottaTint` | `#FBE9E0` | Selected/primary tile backgrounds (active circle, "Snap the cover" tile) |
+| `terracottaTint` | `#FBE9E0` | Selected/primary tile backgrounds (active circle) |
 | `forest` | `#35594A` | Secondary actions, "AI" badges, section labels, progress |
 | `greenTint` | `#E6EDE8` | Secondary highlighted backgrounds |
 | `sage` | `#6E8B7B` | Tertiary accent — avatars, tags |
