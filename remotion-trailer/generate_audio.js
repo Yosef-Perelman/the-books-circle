@@ -1,6 +1,8 @@
 import fs from 'fs';
 
-const apiKey = 'sk_8c7965f9893340d17e31511a69f3fb62a1c57b8566c7daa0';
+// Run with: node --env-file=.env generate_audio.js
+const apiKey = process.env.ELEVENLABS_API_KEY;
+if (!apiKey) throw new Error('Missing ELEVENLABS_API_KEY (see .env.example)');
 const voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam
 const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
 

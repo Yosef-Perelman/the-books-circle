@@ -101,6 +101,10 @@ Scripts:
 { "type": "module", "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" } }
 ```
 
+## Trailer scripts (repo root)
+
+`generate_audio.js` and `remotion-trailer/generate_audio.js` (marketing trailer voice-over, not part of the app) read `ELEVENLABS_API_KEY` from a root `.env` (see `.env.example`). Run with `node --env-file=.env generate_audio.js`.
+
 ## CORS
 
 Development allows `http://localhost:5173`. Production allows exactly the deployed client origin — never `*`, because the app sends an `Authorization` header.
